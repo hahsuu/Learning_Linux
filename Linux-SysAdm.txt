@@ -150,8 +150,91 @@ Linux文件系统管理
         卸载时，用设备或挂载点之一即可
     注意：持载点的原有文件，在挂载完成时，会被临时隐藏
     挂载方法：
-        mount [-fnrsvw] [-t vfstype] [-o options] device dir
         mount：只显示当前挂载的设备
+        mount [-fnrsvw] [-t vfstype] [-o options] device dir
+        device表示要挂载的设备，可用如下方式表示：
+            设备文件，如 /dev/sda5
+            卷标，-L “LABEL“，如，-L "MYDATA"
+            UUID，-u UUID，如，-u “xxxxx-xxxx”
+            伪文件系统名称，如proc，sysfs，devtmpfs，configfs
+        dir，挂载点
+            事先存在，建议为空目录，如，/application/httpdocs
+        注意：在使用过程中，设备无法被卸载
+        常用选项：
+            -t vfstype，指明要挂载的文件系统类型，可省略
+            -r readonly，只读挂载
+            -w read and write，读写挂载
+            -a 自动挂载定义在 /etc/fstab 文件中，且挂载选项中具有“自动挂载”的所有设备
+            -n 在挂载该设备时，不更新 /etc/mtab 文件
+            -L “LABEL”，以卷标指定要挂载的设备
+            -u UUID，以UUID指定要挂载的设备
+            -B --bind，又称绑定，挂载目录到另一个目录
+
+        cat /proc/mounts
+        查看内核追踪到已挂载的所有设备
+
+        挂载文件系统的选项  -o option
+            async   异步模式
+            sync    同步模式
+            atime/noatime   访问文件时，是否自动更改 accsess time 一般是atime，包含目录文件
+            diratime/nodiratime 是否更改目录访问时间戳
+            auto/noauto 是否支持自动挂载
+            exec/noexec 是否支持文件系统上的应该程序运行为进程
+            dev/nodev   是否支持在些文件系统上使用设备文件
+            suid/nosuid 是否支持suid
+            remount 重新挂载
+            ro/rw   只读/读写
+            user/nouser 是否允许普通用户挂载此设备，一般不允许
+            acl 启用此文件系统的 acl 功能
+            注意：上述选项可多个同时使用，用逗号分割
+            默认挂载选项：defaults，包括 rw, suid, dev, exec, auto, nouser, async
+        
+    卸载命令
+        umount DEVICE
+        umount MOUNT_POINT
+        查看正在访问指定文件系统的进程
+            fuser -v MOUNT_POINT
+        终止所有正在访问指定文件系统上的进程
+            fuser -km MOUNT_POINT
+        
+    挂载交换分区
+        启用：swapon
+        禁用：swapoff
+
+        swapon [option]...  [DEVICE]
+            -a 激活所有交换分区        
+            -p PRIORITY，指定优级级，优先级是一个数字
+        swapoff：类似swapon
+    
+    内存空间使用状态
+        free [option]
+            -m 以MB为单位
+            -g 以GB为单位
+    文件系统空间占用等信息查看命令
+        df
+            -h human-readable
+            -i instead of blocks
+            -p 表示 posix 格式输出，不会分行        
+    目录单体空间占用状态查看
+        du [option]...  dir
+            -h --human-readable
+            -s summary
+    命令总结：mount umount free df du swapon swapoff fuser
+
+    文件挂载配置文件
+        /etc/fstab，每行定义一个要挂载的文件系统
+        要挂载的设备或伪文件系统    挂载点     文件系统类型      挂载选项    转储频率    自检次序
+
+        要挂载的设备或伪文件系统，可以是设备文件，LABEL(LABEL="")，UUID(uuid=""),伪文件系统名称(proc, sysfs)
+        挂载点
+        挂载选项，defaults
+        转储频率，0：不做备份，1：每天转储，2：每隔一天转储
+        自检次序，0：不自检，1：首先自检，一般只有根文件系统才用1
+
+文件系统上的其它概念
+
+
+        
 
 
 
