@@ -151,6 +151,8 @@ Linux文件系统管理
     注意：持载点的原有文件，在挂载完成时，会被临时隐藏
     挂载方法：
         mount [-fnrsvw] [-t vfstype] [-o options] device dir
+        mount：只显示当前挂载的设备
+
 
 
 
