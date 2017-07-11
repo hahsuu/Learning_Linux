@@ -1,0 +1,161 @@
+Linux系统管理
+    主要内容：
+        磁盘管理、文件管理
+        RAID 基础原理	LVM2
+        网络管理：TCP/IP协议，Linux网络属性
+        程序包管理：RPM，yum
+        进程管理：htop，glance，tsar等
+        sen和awk
+        Linux系统开机流程
+        内核管理的基础知识，编译内核，模块
+        Linux系统裁减
+        Kernel+busybox
+        课外作业：LFS
+回顾：find，特殊权限，if语句
+Linux磁盘管理
+    IO Port：I/O设备地址
+    一切皆文件，字符设备，块设备
+    设备文件：关联至一个设备的驱动程序，进而能够与之对应的设备进行通信
+    设备号码：
+        主设备号：major number，标识设备的类型
+        次设备号：minor number，标识同一类型下的不同设备
+    /dev/DEV_FILE
+    磁盘的接口类型：
+        并口：
+        IDE	133MB/S
+        SCSI：640MB/S
+        串口：
+        SATA：6Gpbs
+        SAA：6Gpbs
+        USB：480MB/S
+    磁盘设备文件命名
+        IDE：/dev/hd[a-z]
+        其它：//dev/sda[a-z]
+        不同的设备：a-z，如：/dev/sda，/dev/sdb，……
+        同一设备不同分区，1，2，3，……，如：/dev/sda1，/dev/sda2，……
+    机械硬盘的工作方式
+        track：磁道
+        cylinder：柱面
+        secto：扇区
+        如何分区：按柱面
+        MBR：Master Boot Record
+        0磁道，0扇区，512bytes
+        bootload：446bytes
+        分区表：64bytes，每16bytes标识一个分区，最多4个主分区
+        标记位：2bytes，5A
+        磁盘转速单位：rpm，rotations per minute
+        UEFI，GPT？
+    分区管理工具：
+        fdisk：对于一块硬盘最多管理15个分区
+        fdisk -l [-u] [device...]
+        # fdisk device
+        子命令：
+            p 	print 显示已有分区
+            n 	new，创建分区
+            d 	delete，删除分区
+            w	write，写入修改并退出
+            q 	quit，放弃修改并退出
+            m	获取帮助信息
+            l	list，列出分区id
+            t	调整分区id
+        cat /proc/partitions，查看内核是否忋识别分区
+        通知内核重新读取磁盘分区表信息：
+            partx
+            partx -a /dev/sda
+            partx --a -n 4:6 /dev/sda
+            kpartx -a /dev/sda
+                -f : force
+            CentOS 5上使用 partprob
+            partprob /dev/sda
+Linux文件系统管理
+    Linux文件系统：
+        ext2, ext3, ext4, XFS, btrfs, reisefs, jfs, swap(交换分区)
+    光盘文件系统，iso9660
+    Windows fat32, NTFS
+    Unix FFS, UFS, JFS2
+    网络文件系统 NFS, CIFS
+    集群文件系统 GFS2, OCFS2
+    分布式文件系统 ceph, moosefs, mogilefs, glusterfs, lustre
+    根据其是否支持日志“journal”功能，分为
+    日志型：extras，……
+    非日志型：extr2
+    文件系统的组成部分：
+    内核中的模块：ext4，xfs
+
+    用户空间的管理工具：
+    mkfs.ext2  mkfs.xfs
+    Linux的虚拟文件系统：VFS
+    创建文件系统：
+    mkfs.FS_TYPE /dev/DEVICE
+    FS_TYPE：
+        ext4
+        xfs
+        btrfs
+        vfat
+    mkfs -t FS_TYPE /dev/DEVICE
+        -L “ABELE“	设置卷标
+    mke2fs：ext系列文件系统专用工具
+        -t {ext2|ext3|ext4}
+        -b {1024|2048|4096}	块大小
+        -L “ABELE“	设置卷标
+        -j 相当于 -t ext3
+        mkfs.ext3 = mkfs -t ext3 = mke2fs  -j = mke2fs -t ext3
+        -i # 为数据空间每多少个字节创建一个inode，此大小不应该小于块的大小
+        -N # 为数据空间创建多少个inode
+        -m # 为管理人员预留的空间占据的百分比，默认为5%
+        -O FEATURE[, ...] 启用特性
+           ^FEATURE 关闭特性
+    mke2fs -b 1024 -m 3 -L "MYDATA" /dev/sda4
+    mkswap：创建交换分区
+    -L “LABEL”
+    前提是要将分区的id调整为82
+    其它工具：
+        blkid：块设备属性信息查看
+        blkid [options]  device [device ...]
+        -U UUID：根据UUID查找设备
+        -L LABEL：显示卷标为LABEL的设备、
+        e2label：管理ext系列文件系统的LABEL
+        e2label device [ new-label ]  查看或设置卷标
+        tune2fs：重新设定ext系列文件系统可调整的参数
+        -l  查看超级块信息
+        -L  “LABEL” 修改卷标
+        -m #  修改预留给管理员的百分比
+        -j  将ext2 -> ext3
+        -O  文件系统属性启用禁用
+        -o  调整挂载选项
+        -u  UUID  修改UUID
+    dumpe2fs
+        -h  查看超级块信息
+    文件系统检测
+        fsck： File System Check
+        fsck.FS_TYPE  或  fsck -t FS_TYPE
+    Note：FS_TYPE，一定要与文件系统相同
+        -a  自动修改错误
+        -r  交互式修复
+        e2fsck：ext系列文件系统专用检测工具
+        -y  自动回答yes
+        -f  强制修复
+回顾：
+    磁盘接口类型，磁盘分区，fdisk，mkfs，mke2fs，tune2fs，dumpe2fs，e2label，blkid
+    vfs：虚拟文件系统
+    xfs，ext{2|3|4}，btrfs
+
+文件系统管理
+    将额外的文件系统与根文件系统上的目录建立关联关系，进而使该目录作为访问其它文件系统的入口的行为称之挂载
+    解除关联有关系的过程称之为卸载
+    挂载点：Mount Point
+    mount
+        把要挂载的设备关联至挂载点
+    umount
+        卸载时，用设备或挂载点之一即可
+    注意：持载点的原有文件，在挂载完成时，会被临时隐藏
+    挂载方法：
+        mount [-fnrsvw] [-t vfstype] [-o options] device dir
+
+
+
+
+
+
+
+
