@@ -315,6 +315,52 @@ RAID  Redundant Array of Inexpensive Disks，廉价冗余磁盘陈列
             可用空间：N*min(s1,s2,...)/2
             有容错能力，每组镜像最多能坏一块
             最少磁盘数：4，4+
+        RAID-01，RAID-50，RAID-7
+        JBOD：Just a Bunch of Disks
+            功能：将多块磁盘空间合并成一个在的连续空间
+            可用空间：sum(s1,s2,...)
+        常用级别：RAID-0, RAID-1, RAID-5, RAID-10, RAID-50, JBOD
+        
+    实现方式
+        硬件实现方式
+        软件实现方式
+            CentOS 6 上的软件RIAD的实现，结合内核中的 md(multi devices)
+            mdadm：模式化的工具
+            命令语法格式
+                 mdadm [mode] <raiddevice> [options] <component-devices>
+                 raiddevice，/dev/md#
+                 component-devices，任意块设备
+                 支持的RAID级别：LINAR, RAID0, RAID1, RAID4, RAID5, RAID6, RAID10
+                 模式：-C 创建 -A 装配 -F 监控 -f -r -a 管理
+                 -C，创建模式
+                    -n # 使用#个块来创建此RAID
+                    -l # 指明要创建的RAID级别
+                    -a {yes|no} 是否创建目标RAID设备的设备文件
+                    -c CHUNK_SIZE 指明块大小
+                    -x # 指明空闲盘的个数
+                -D 显示RAID的详细信息
+                
+                管理模式
+                    -f 标记磁盘为损坏
+                        例如：mdadm /dev/md# -f /dev/sdc
+                    -a 添加磁盘
+                    -r 移除磁盘
+
+                    观察md的状态
+                        cat /proc/mdstat
+                    
+                    停止md设备
+                        -S --stop
+                        md -S /dev/md#
+                    彻底删除md设备
+                        1. 停止md设备
+                            md --stop /dev/md0
+                        2. 移除md设备
+                            md --remove /dev/md0
+                        3. 将相关块设备的超级重写
+                            mdadm --zero-superblock /dev/sd{c,d,e,f}
+                            
+
 
 
 
