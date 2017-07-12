@@ -232,6 +232,95 @@ Linux文件系统管理
         自检次序，0：不自检，1：首先自检，一般只有根文件系统才用1
 
 文件系统上的其它概念
+    Inode，Index node，索引结点
+    地址指针：
+        直接指针，间接指针，三级指针
+    inode bitmap：对伴标识每个inode空间与否的状态
+    链接文件
+        硬链接：
+            不能对目录进行
+            不能跨分区进行
+            指向同一个inode的多个不同路径，创建硬链接，即为inode创建新的引用路径，因此会增其引用次数
+        符号链接，也称为软链接
+            可以对目录进行
+            可以跨分区进行
+            指向的是另一个文件的路径，其大小为指向路径字符串的长度，不会增加或减少目标文件inode的引用计数
+        ln [sv] SRC DEST
+            -s symbolic link
+            -v verbose
+
+bash脚本编程之用户交互
+    read [option]... [name,..]
+        -p "PROMPT"
+        -t TIMEOUT(数值) 指明超时时间
+    检测bash脚本语法错误
+        bash -n /path/to/some_script
+    调试执行
+        bash -x /path/to/some_script
+
+回顾：
+    mount/umount fstab配置文件 ext文件系统的基础原理
+    read bash
+    /etc/fstab
+    ext super, block GDT(组描述表) inode table, block bitmap, dumpe2fs -h, tune2fs -l
+    硬链接，软链接
+
+RAID  Redundant Array of Inexpensive Disks，廉价冗余磁盘陈列
+      Redundant Array of Independent Disks，独立冗余磁盘陈列
+      Berkeley A case for Redundant Array of Inexpensive Disks  RAID
+
+    提高IO能力，磁盘并行读写，加缓存，外部供电
+    提高耐用性，通过磁盘冗余完成
+    级别：多块磁盘组织在一起的工作方式有所不同
+    RAID实现方式
+        外接式磁盘阵列，通过扩展卡提供适配能力
+        内接式RAID，主板集成RAID控制器
+        software RAID
+    级别：level
+        RAID-0  0，条带卷
+        RAID-1  1，镜像卷
+        RAID-2  
+        RAID-3
+        RAID-4
+        RAID-5
+        RAID-6
+        RAID-10
+        RAID-01
+
+        RAID-0：
+            读写性能提升
+            可用空间：N*min(s1,s2,...)
+            无容错能力
+            最少磁盘数：2，2+
+        RAID-1：
+            读性能提升，写性能略有下降
+            可用空间：1*min(s1,s2,...)
+            有冗余能力
+            最少磁盘数：2，2+
+
+        RAID-2，RAID-3不常用
+        RAID-4: 类似RAID-0，再加一块用来存放校验码的磁盘
+        RAID-5：类似RAID-4，但校验码循环存在至每块磁盘上
+            读写性能提升
+            可用空间：(N-1)*min(s1,s2,...)
+            有容错能力：1块磁盘
+            最少磁盘数：3，3+
+        RAID-6：在RAID-5的基础上，增加一块磁盘用来存储校验码
+            读写性能提升
+            可用空间：(N-2)*min(s1,s2,...)
+            有容错能力：2块磁盘
+            最少磁盘数：4，4+
+        RAID-10
+            读写性能提升
+            可用空间：N*min(s1,s2,...)/2
+            有容错能力，每组镜像最多能坏一块
+            最少磁盘数：4，4+
+
+
+
+
+
+
 
 
         
