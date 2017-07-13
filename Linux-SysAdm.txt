@@ -533,6 +533,70 @@ bash脚本编程
             5. 变量引用 
                 $@   $*
 
+Linux程序包管理（1）
+    API：Application Programming Interface
+    POSIX Portable OS
+    程序源代码 -> 预处理 -> 编译 -> 汇编 -> 链接
+    静态编译
+    动态编译  .so
+
+    ABI application Binary Interface    应用程序二进制接口
+    Windows与Linux不兼容
+        库级别虚拟化
+        Linux WINE
+        Windows Cywin
+
+    应用级开发   java python php perl ruby
+    系统级开发   c c++
+
+    二进制应用程序的组成部分
+        二进制可执行文件  库文件  配置文件  帮助文件
+    
+    程序包管理器
+        debian:  deb  dpt
+        redhat:  rpm
+            rpm  Redhat Package Manager
+            RPM is Package Manager
+    
+    源码包
+        name_VERSION.tar.gz
+            VERSION
+                major.minor.release
+    rpm包命名方式
+        name_VERSION-release.arch.rpm
+            VERSION：major.minor.release，同源码包保持一致
+            release.arch，rpm包版本号，release.os.arch
+            zlib-1.2.7-13.e17.i686.rpm
+            常见的arch
+                x86: i386 i486 i586
+                x86_64: x64 x86_64 amd64
+
+    拆包，在有些情况下，程序包过大或者功能过多，在制件程序包往往按功能拆分为多个包
+        主包  testapp-VERSION-ARCH.rpm
+        支包，子包，分包  testapp-devel-VERSION-ARCH.rpm
+
+    包之间存在依赖关系
+        yum，rpm包管理器的前端工具
+        apt-get，deb包管理器的前端工具
+        zypper，suse上的rpm前端管理工具
+        dnf，Fedora 22+，rpm包管理器前端管理工具
+
+    查看二进制程序所依赖的库文件
+        ldd /PATH/TO/BINARNY_FILE
+    管理及查看本机装载的库文件
+        ldconfig
+            -p 显示本机已经缓存的所有可用库文件的文件名及文件路径的对应关系
+            配置文件：
+                /etc/ld.so.conf
+                /etc/ld.so.conf.d/*.conf
+            缓存文件：
+                /etc/ld.so.cache
+                
+
+
+
+
+
         
 
 
