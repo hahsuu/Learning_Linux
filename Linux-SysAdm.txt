@@ -359,7 +359,189 @@ RAID  Redundant Array of Inexpensive Disks，廉价冗余磁盘陈列
                             md --remove /dev/md0
                         3. 将相关块设备的超级重写
                             mdadm --zero-superblock /dev/sd{c,d,e,f}
-                            
+
+LVM2：Logic Volume Manager Version 2
+    dm，device mapper，将一个或多个底层块设备组织成一个逻辑设备的模块，/etc/dm#
+    /dev/mapper/VG_NAME-LV_NAME     /dev/VG_NAME/LV_NAME
+    /dev/mapper/VolGroup-lv_root    /dev/VolGroup/lv_root
+
+    PV管理工具
+        pvs，简要显示pv信息
+        pvdisplay，pv详细信息显示
+        pvcreate，/dev/DEVICE：创建pv
+
+    VG管理工具
+        vgs，简要显示vg信息
+        vgdisplay
+        vgcreate  [option...]   VolumeGroupName PhysicalDevicePath [PhysicalDevicePath...]
+            -s #[bBsSkKmMgGtTpPeE]
+        vgextend VolumeGroupName PhysicalDevicePath [PhysicalDevicePath...]
+        vgreduce VolumeGroupName [PhysicalVolumePath...]
+
+    LV管理工具
+        lvs
+        lvdisplay
+        lvcreate -L|--size LogicalVolumeSize[b|B|s|S|k|K|m|M|g|G|t|T|p|P|e|E] -n|--name LogicalVolume{Name|Path} VolumeGroup
+    扩展逻辑卷
+        lvextend  -L|--size [+]LogicalVolumeSize[bBsSkKmMgGtTpPeE]} LogicalVolumePath
+        resize2fs /dev/VG_NAME/LV_NAME
+    缩减逻辑卷
+        umount /dev/VG_NAME/LV_NAME
+        e2fsck -f /dev/VG_NAME/LV_NAME
+        resize2fs /dev/VG_NAME/LV_NAME #[mMgGtT]
+        lvreduce -L [-]#[mMgGtT] /dev/VG_NAME/LV_NAME
+        mount
+    快照
+        lvcreate -L #[mMgGtT] -p r -s -n snapshot_lv_name original_lv_name
+
+文件系统挂载使用
+    挂载光盘设备
+        光盘设备文件
+            IDE：/dev/hdc
+            SATA：/dev/sr0
+            符号链接文件，/dev/cdrom
+            
+            mount -r /dev/cdrom /media/cdrom
+        dd命令，转换及复制文件
+            用法
+                dd if=/PATH/FROM/SRC of=/PATH/TO/DEST
+                bs=#，block size，复制单元大小(字节)
+                count=#，复制的块数量
+            磁盘拷贝
+                dd if=/dev/sda of=/dev/sdb
+            备份MBR
+                dd if=/dev/sda of=/tmp/mbr.bak bs=512 count=1
+            破坏MBR的bootload
+                dd if=/dev/zero of=/dev/sda bs=256 count=1
+        两个特殊设备
+            /dev/null  数据黑洞
+            /dev/zero  吐零机
+
+btrfs文件系统
+    技术预览版
+    Btrfs(B-tree，Butter-tree，Better-tree)，GPL，2007 oracle
+    核心特性
+        1. 多卷(物理)支持，可由多个物理卷组成，支持RAID，联机添加，移除和修改
+        2. 写时复制更新机制(CoW)，复制、更新及替换指针，而非“就地更新”
+        3. 数据及元数据校验码，checksum
+        4. 子卷，sub_volume
+        5. 快照，支持快照的快照
+        6. 支持透明压缩
+    文件系统创建
+        mkfs.btrfs
+            -L "LABEL"
+            -d <profile> RAID0, RAID1, RAID5, RAID6, RAID10, Single，数据块组
+            -m <profile>  RAID0, RAID1, RAID5, RAID6, RAID10, dup，元数据块组
+            -O <feature>
+            -O list-all 列出支持所有特性
+    属性查看
+        btrfs filesystem show
+    挂载文件系统
+        mount -t btrfs /dev/sdb MOUNT_POINT
+    透明压缩机制
+        mount -o compress={lz0|zlib} DEVICE MOUNT_POINT
+    
+    子命令：filesystem, device, balance, subvolume
+
+压缩、解压缩及归档工具
+    compress/upcompress,  .z
+    gzip/gunzip,  .gz
+    bzip2/bunzip2,  .bz2
+    xz/unxz,  .xz
+    tar  cpio
+
+    1. gzip/gunzip
+        gzip [ -acdfhlLnNrtvV19 ] [-S suffix] [--rsyncable] [ name ...  ]
+            -d 解压缩，相当于gunzip
+            -c 将压缩的结果输出至标准输出，可重定向，不会操作原文件
+            -# 指定压缩比，默认压缩比是 6
+        zcat，不显式展开的前提下，查看文本文件的内容
+    2. bzip2/bunzip2
+        bzip2 [ -cdfkqstvzVL123456789 ] [ filenames ...  ]
+            -k keep，保留原文件
+            -d 解压缩
+            -# 压缩比(1-9)，默认为 6
+     3. xz/unxz
+        xz [option]...  [file]...
+            -k keep，保留原文件
+            -d 解压缩
+            -# 压缩比(0-9)，默认为 6
+    4. tar
+        tar [OPTION...] [FILE]...
+        (1)创建归档
+            tar -cf /PATH/TO/SOMEWHERE.tar FILE ...
+        (2)查看归档文件中的文件列表
+            tar -tf /PATH/TO/SOMEWHERE.tar
+        (3)展开归档
+            tar -xf /PATH/TO/SOMEWHERE.tar
+            tar -xf /PATH/TO/SOMEWHERE.tar -C /PATH/TO/DIR  展开至指定的目标目录
+        
+        结合压缩工具，归档并压缩
+            -j  bzip2       -z  gzip        -J  xz
+
+bash脚本编程
+    condition
+        bash命令
+        用命令的执行状态结果，成功为true，失败为false
+        成功或失败的意义，取决于用到的命令
+        
+    if语句        bash -n     bash -x
+        单分支
+            if condition; then
+                if-true
+            fi
+        双分支
+            if condition; then
+                if-true
+            else
+                if-false
+            fi
+        多分支
+            if condition1; then
+                if-true
+            elif condition2; then
+                if-true
+            elif condition3; then
+                if-true
+            ...
+            else
+                all-false
+            fi
+            逐条件进行判断，第一次遇到为“真”条件时，执行其分支，而后结束
+    注意：if语句可以嵌套
+
+    循环 for while until
+        for循环
+        循环体：要执行的代码，可能要执行n遍
+        进入条件
+        退出条件
+
+        for 变量名 in 列表; do
+            循环体
+        done
+
+        执行机制：依次将列表中的元素的值赋给“变量名”，每次赋值后即执行一次循环体中的语句，直到列表中的元素耗尽，循环结束
+        
+        列表的生成方式：
+            1. 直接给出字符串列表
+            2. 整数列表
+                (1) [start..end]
+                (2) $(seq [start [step] end])  要使用命令引用
+            3. 返回列表的命令
+                $(COMMAND)，如，$(ls /var)
+            4. glob，文件名通配方式，如，/var/*
+            5. 变量引用 
+                $@   $*
+
+        
+
+
+
+
+
+    
+
+
 
 
 
