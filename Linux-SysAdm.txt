@@ -591,7 +591,225 @@ Linux程序包管理（1）
                 /etc/ld.so.conf.d/*.conf
             缓存文件：
                 /etc/ld.so.cache
-                
+
+    程序包管理
+        功能：将编译好的应用程序的各组成文件打包成一个或多个程序包文件，从而方便快捷地实现程序包的安装，卸载，查询，升级和校验等管理操作
+            1. 程序的组成清单(每个包独有)
+                文件清单
+                安装或卸载时运行的脚本
+            2.数据库(公共)
+                程序包名称及版本
+                依赖关系
+                功能说明
+                安装生成的各文件的路径以及校验码信息
+        
+        管理程序包的方式
+            使用包管理器，rpm
+            使用前端工具，yum，dnf
+
+        获取程序包的途径
+            1. 系统发行版的光盘或官方服务器
+                CentOS镜像站点
+                http://mirrors.aliyun.com
+                http://mirrors.163.com
+                http://mirrors.sohu.com
+            2.项目官方站点
+            3. 第三方组织
+                Fedora的EPEL源
+                搜索引擎
+                    http://pkgs.org
+                    http://rpmfind.net
+                    htpp://rpm.phone.net
+            4. 自己制作
+
+            建议：检查程序包的合法性
+                来源合法性
+                程序包的完整性
+
+    CentOS系统上rpm命令管理程序包
+        安装、卸载、升级、查询、校验、数据库维护
+        安装
+            rpm {-i|--install} [install-options] PACKAGE_FILE ...
+            -v verbose
+            -vv
+            -h 以 # 显示程序包管理执行进度，每个 # 表示 2% 进度
+
+            rpm -ivh PACKAGE_FILE ...
+                [install-options]
+                --test 测试安装，但不真正执行安装，dry run
+                --nodeps  忽略依赖关系
+                --replacepkgs  重新安装
+                --nosignature  不检查来源合法性
+                --nodigest  不检查包完整性
+                --noscript  不执行程序包脚本
+                    %pre 安装前脚本      --nopre
+                    %post  安装后脚本    --nopost
+                    %preun 卸载前脚本    --nopreun
+                    %postun  卸载后脚本  --nopostun
+
+        升级
+            rpm {-U|--upgrade} [install-options] PACKAGE_FILE ...
+            rpm {-F|--freshen} [install-options] PACKAGE_FILE ...
+            upgrade，升级时有旧版程序包，则“升级”，否则，则“安装”
+            freshen，升级时有旧版程序包，则“升级”，否则，不进行任务操作
+            rpm -Uvh PACKAGE_FILE ...
+            rpm -Fvh PACKAGE_FILE ...
+            大多数的inbstall-options都能使用
+            --oldpackage  降级
+            --force  强行升级
+            注意：
+                1. 不要对内核做升级操作，Linux支持多内核并存，因此，直接安装新版内核
+                2. 如果原程序包的配置文件安装生曾被修改，升级时新版的配置文件不会直接覆盖老版的配置文件，而把新版的文件重命名(filename.rpmnew)后保留
+        
+        查询
+             rpm {-q|--query} [select-options] [query-options]
+             select-option
+                -a 所有已安装的包  rpm -qa | grep "php"
+                -p /PATH/TO/PACKAGE_FILE  针对未安装程序包作查询操作
+                -f 查指定的文件由哪个程序包生成
+                    rpm -qf bash
+                --whatprovides CAPABILITY  查询指定CAPABILITY由哪个包提供
+                --whaterequires CAPABILITY  查询指定CAPABILITY被哪个包依赖
+            query-options
+                --changelog   显示rpm包的changelog，不是程序本身的changelog
+                rpm -q --changelog zsh
+                -c 查询程序配置文件
+                --conflicts
+                -d 查询程序的文件
+                -i --info  information，程序包的相关信息
+                -l 列出程序包安装之后生成的所有文件(非常有用)   
+                --script  显示指定程序包安装卸载时可能会执行的脚本
+                --triggers  显示指定程序包安装卸载时可能会执行的触发器脚本
+                -R  查询指定的程序包所依赖的CAPABILITY
+                --provodes  列出指定程序包提供的CAPABILITY
+            用法
+                -qi PACKAGE
+                -qf FILE
+                -qc PACKAGE
+                -ql PACKAGE
+                -qd PACKAGE
+                -qpi PACKAGE_FILE
+                -qpl PACKAGE_FILE
+                -qa
+
+        卸载
+            rpm {-e|--erase} [--allmatches] [--nodeps] [--noscripts]
+
+        校验
+            rpm {-V|--verify} [select-options] [verify-options]
+                S file Size differs
+                M Mode differs (includes permissions and file type)
+                5 digest (formerly MD5 sum) differs
+                D Device major/minor number mismatch
+                L readLink(2) path mismatch
+                U User ownership differs
+                G Group ownership differs
+                T mTime differs
+                P caPabilities differ
+
+        包来源合法性及完整性验证
+            完整性验证
+            公钥加密
+                对称加密，加密解密使用同一密码
+                非对称加密
+                    public key  公钥，公开，所有人都能获取到
+                    secret key  私钥，不能公开
+            导入公钥
+                rpm --import /PATH/FORM/GPG_PUBKEY_FILE
+                发行版7密钥文件 RPM-GPG-KEY-CENTOS-7
+        
+        数据库重建
+            rpm {--initdb|--rebuilddb}
+                --initdb  初始化
+                如果不存在，则创建，否则不做任何操作
+                --rebuilddb 重建
+                不论当前存在与否，直接重新创建数据库
+
+Linux程序包管理（2）
+    CentOS  yum dnf
+    YUM yellow dog Yellow Update Modifier
+    yum repository(yum repo)  yum仓库
+        存储了众多rpm包，以及包相关的元数据文件(放置特定目录下：repodata)
+        文件服务器：ftp:// http:// nfs:// file://
+    
+    yum客户端
+        公共配置文件：
+            /etc/yum.conf
+        仓库配置文件：
+            /etc/yum.repo.d/*.repo
+
+        仓库定义：
+            [repositoryid]
+            name=some name for this repository
+            baseurl=url://path/to/repository
+            enabled={1|0}
+            gpgcheck=={1|0}
+            gpgkey=url
+            enablegroup={1|0}
+            failovermethod={roundrobin|priority}   默认是roundrobi，随机
+            cost=1000   默认1000，越小优先级越高
+
+    yum命令用法
+        显示仓库列表
+            repolist [enabled | disableed | all]
+        显示程序包
+            list
+            yum list phh*
+            yum list {available | installed | updates} [glob_exp1] [...]
+
+        安装程序包
+            install PACKAGE1 [PACKAGE2] ...
+        
+        升级程序包
+            update PACKAGE1 [PACKAGE2] ...
+
+        检查可用升级
+            chech-update
+        
+        卸载程序包
+            remove | erase PACKAGE1 [PACKAGE2] ...
+
+        查看程序包information
+            info [...]
+        
+        查看指定的特性（某文件）是由哪个程序包提供
+            provides  类似 rpm -qf
+        
+        清理本地缓存
+            clean [packages | metadata | all]
+        
+        构建缓存
+            makecache
+        
+        搜索
+            search string1 [string2] ...
+            搜索程序包名及summary中确定的关键字
+
+        重新安装
+            reinstall
+        
+        降级
+            downgrade
+
+        显示程序包依赖关系的 capability
+            deplist PACKAGE1 [PACKAGE2] ...
+
+        查看yum事务历史
+            history [info | list | stats]
+        
+        安装及升级本地程序包
+            localinstll localupdate 现已不建设使用，用 install update 代替
+        
+        包组管理命令
+            groupinstall
+            groupupdate     
+            grouplist
+            groupremove
+            groupinfo   
+
+
+
+
 
 
 
@@ -606,7 +824,7 @@ Linux程序包管理（1）
     
 
 
-
+ 
 
 
 
