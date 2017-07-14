@@ -1032,6 +1032,12 @@ Linux网络属性管理
             netstat  {--route|-r} [--numeric|-n]
                 -r 内核路由表
                 -n 数字格式
+        接口统计数据
+            netstat -i   所有接口
+            netstat -Ieth0   选项 -I 和 设备名之间不能有空格
+
+Linux网络配置（2）
+
 
         
 
