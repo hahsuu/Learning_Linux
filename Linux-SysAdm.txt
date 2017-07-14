@@ -805,7 +805,237 @@ Linux程序包管理（2）
             groupupdate     
             grouplist
             groupremove
-            groupinfo   
+            groupinfo  
+
+    如何使用光盘当本地仓库
+        1. 挂载光盘至某目录，例如，/media/cdrom
+            mount -r -t iso9660 /dev/cdrom /media/cdrom
+        2. 创建配置文件
+            [CentOS7-cdrom] 
+            name=
+            baseurl=file:///mnt/cdrom
+            gpgchcke=0
+            enabled=1
+
+    yum命令行选项
+        --nogpgcheck  禁止进行gpgcheck
+        -y  自动回答yes
+        -q  静默模式
+        --disablerepo=repoidglob  临时禁用此处指定的repo，可使用glob方式指定
+        --enablerepo=repoidglob  临时启用此处指定的repo
+        --noplugin  禁用所有插件
+
+    yum仓库配置文件中可用变量
+        $releasever  当前OS发行版的主版本号
+        $arch  平台
+        $basearch  基础平台
+        $yum0-$yum9
+        如，http://mirrors.lsu.edu.cn/centos/$releasever/$basharch/os
+
+    创建yum仓库
+        createrepo [option] <dir>
+
+    程序包编译安装
+        test_VERSION-release.src.rpm，安装后，使用rpmbuild命令制作成二进制格式的rpm包，而后再安装
+        源代码组织格式
+            多文件，文件中的代码之间，很可能存在跨文件依赖关系
+            c c++  make  configure -> makefile.in -> makefile
+            java   maven
+        
+        编译安装三步骤
+            ./configure通过选项，传递参数，指定启用特性、安装路径
+            make，根据makefile文件，构建应用程序
+            make install
+            执行时会参考用户的指定以及makefile.in文件生成makefile
+            检查各依赖到的外部环境
+            开发工具
+                autoconf，生成configure脚本
+                automake，生成makefile.in文件
+            建议：安装前查看INSTALL, REDAME文件
+        开源程序源代码获取
+            官方自建站点
+            代码托管
+                SourceForge
+                github.com
+
+        编译C源代码
+            前提：提供开发工具及开发环境
+                开发工具，gcc make等
+                开发环境，开发库，头文件
+                通过“包组”提供开发组件
+                    CentOS 6：“Development tools”  “Server Platform Development”
+            
+            第一步：configure脚本
+                选项：安装位置，启用特性
+                --help，获取其支持的选项
+                选项分类
+                    安装路径设定
+                        --prefix=/PATH/TO/SOMEWHERE  默认安装目录
+                        --sysconfidir=/PATH/TO/SOMEWHERE  配置文件安装目录
+                    system types
+                    Optional Feature：可选特性
+                        --disable-FEATURE
+                        --enabl-FEATURE[=ARG]
+                    Optoinal Packages：可选包
+                        --with-PACKAGE[=ARG]
+                        --without--PACKAGE
+            第二步：make
+            第三步：make install
+
+            安装之后的配置
+                1. 导出二进制程序目录至PATH环境变量中
+                    编辑文件 /etc/profile.d/NAME.sh
+                        export PATH=/PATH/TO/BIN:$PATH
+                2. 导出库文件路径
+                    编辑文件 /etc/ld.so.conf.d/NAME.conf
+                    添加新的库文件所在目录至此文件
+                    让系统重新生成缓存  ldconfig [-v]
+                3. 导出头文件，基于符号链接方式
+                    ln -sv
+                4. 导出帮助手册
+                    编辑 /etc/man.config
+                    添加一个MPATH
+
+Linux网络属性管理
+    局域网：以太网，令牌环网
+    Ethernet，CSMA/CD 载波侦听多路访问冲突检测
+        冲突域
+        广播域
+        MAC  Media Access Control
+        48bits  前24bits，厂商，后24bits，序列号
+
+    Routing Protocol，路由协议，RIP
+    Routed Protocol，被路由协议
+    传输层协议
+        tcp upd stcp 
+    网络层协议
+        ip
+    
+    IPV4地址分类
+        点分十进制  0.0.0.0 - 255.255.255.255
+        A类
+            0 000 0000 - 0 111 1111     1-127
+            网络数，127个
+            每个网络中的主机数 2^24-2台，全0，全1 有特殊作用
+            默认子网掩码  255.0.0.0
+            私网地址  10.0.0.0/8
+
+         B类
+            10 00 0000 - 10 11 1111     128-191
+            网络数，2^14个
+            每个网络中的主机数 2^16-2台，全0，全1 有特殊作用
+            默认子网掩码  255.255.0.0
+            私网地址  176.16.0.0/16 - 172.31.0.0/16
+
+        C类
+            110 0 0000 - 110 1 1111     192-223
+            网络数，2^21个
+            每个网络中的主机数 2^8-2台，即254台，全0，全1 有特殊作用
+            默认子网掩码  255.255.0.0
+            私网地址  192.168.0.0/24 - 192.168.255.0/24
+        
+        D类 组播地址
+            1110 0000 - 1110 1111       224-239
+        
+        E类 
+            240 - 255
+
+    跨网络通信：路由
+        主机路由，路由目标是单台主机
+        网络路由
+        默认路由
+    
+    将主机接入到网络中
+        IP/mask
+        路由，即网关
+        DNS服务器
+            主DNS服务器
+            次DNS服务器
+            第三DNS服务器
+        
+    配置方式
+        表态指定
+            ifcfg：ifconfig，route，netstat
+            ip {link ｜ addr ｜ route}，ss，tc
+            配置文件
+                system-config-network-tui
+                setup
+        动态分配
+            DHCP Dynamic Host Configuration Protoco
+
+    配置网络接口
+        接口命名方式
+            CentOS 6
+                以太网：eth0，eth1，……
+                PPP：ppp[0, 1, 2, ...]
+        
+        ifconfig命令
+            ifconfig [interface]
+            ifconfig interface [aftype] options | address ...
+
+            ifconfig -a
+            ifconfig IFACE [up | down]
+            ifconfig IFACE IP/mask [up]
+            ifconfig IFACE ip netmask MASK
+
+         注意:立即生效
+         启用混杂模式 [-]promisc
+        
+        route命令
+            路由管理命令
+                查看：route -n
+
+                添加路由  route add
+                route add [-net | -host ] target [netmask NM] [gw GW] [[dev] If]
+               
+                目标主机：192.168.1.3，网关：172.16.0.1
+                    route add -host 192.168.1.3 gw 172.16.0.1 dev eth0
+
+                目标：192.168.0.0，网关：172.16.0.1
+                    route add -net 192.168.0.0/24 gw 172.16.0.1 dev eth0
+                    route add -net 192.168.0.0 netmask 255.255.255.0 gw 172.16.0.1 dev eth0
+
+                默认路由，网关 172.16.0.1
+                    route add -net 0.0.0.0 netmask 0.0.0.0 gw 172.16.0.1
+                    route add default gw 172.16.0.1
+
+                删除 route del
+                route  del [-net|-host] target [gw Gw] [netmask Nm] [[dev] If]
+
+                route del -host 192.168.1.3
+                route del -net 192.168.0.0/24
+                route del -net 192.168.0.0 netmask 255.255.255.0
+
+    DNS服务器指定
+        /etc/resolv.con
+            nameserver DNS_SERVER_IP1
+            nameserver DNS_SERVER_IP2
+            nameserver DNS_SERVER_IP3
+        正解：FQDN -> IP
+            dig -t A FQDN
+            host -t A FQDN
+        反解：IP -> FQDN
+            dig -x ip
+            host -t PTR ip
+
+    netstat命令  网络状态查看
+        显示网络连接
+            -t  TCP协议相关
+            -u  UDP协议相关
+            -w  裸套接字
+            -l  处于监听状态
+            -a  所有状态
+            -n  以数字格式显示IP和端口
+            -e  扩展格式
+            -p  显示相关的进程和PID号
+        显示路由表
+            netstat  {--route|-r} [--numeric|-n]
+                -r 内核路由表
+                -n 数字格式
+
+        
+
+
 
 
 
