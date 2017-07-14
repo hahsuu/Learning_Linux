@@ -871,7 +871,7 @@ Linux程序包管理（2）
                 选项分类
                     安装路径设定
                         --prefix=/PATH/TO/SOMEWHERE  默认安装目录
-                        --sysconfidir=/PATH/TO/SOMEWHERE  配置文件安装目录
+                        --sysconfdir=/PATH/TO/SOMEWHERE  配置文件安装目录
                     system types
                     Optional Feature：可选特性
                         --disable-FEATURE
@@ -896,7 +896,7 @@ Linux程序包管理（2）
                     编辑 /etc/man.config
                     添加一个MPATH
 
-Linux网络属性管理
+Linux网络属性配置（1）
     局域网：以太网，令牌环网
     Ethernet，CSMA/CD 载波侦听多路访问冲突检测
         冲突域
@@ -1036,7 +1036,151 @@ Linux网络属性管理
             netstat -i   所有接口
             netstat -Ieth0   选项 -I 和 设备名之间不能有空格
 
-Linux网络配置（2）
+Linux网络属性配置（2）
+    配置Linux网络属性：ip 命令
+        ip [ OPTIONS ] OBJECT { COMMAND | help }
+        OBJECT = {link | addr | route}
+
+        link OBJECT 网络设备配置命令
+        
+        ip link
+            show 
+                [dev IFACE]  指定接口
+                [up]   仅显示处于激活状态的接口
+            set 
+                dev IFACE
+                可设置属性
+                    up or down
+                    promisc {on | off}    
+                    arp {on | off}
+                    ....
+
+        ip addr
+            ip addr {add | del} IFADDR dev String
+                [label LABEL]   指明网卡别名
+                [scope {globl | link | host}]  指明作用域
+                    global：全局可用
+                    link：仅链接可用
+                    host：本机可用
+                [broadcast ADDRESS]  广播地址
+
+            ip addr show
+                [dev DEVICE]
+                [label PATTERN]
+                [primary and secondary]
+
+            ip addr flush
+                使用格式同 show 命令
+
+        ip route
+            ip route add
+            ip route add 192.168.1.3 via 172.16.0.1 dev eth0
+            ip route add 192.168.0.0/24 via 172.16.0.1 dev eth0
+            
+            添加路由方式
+                ip route add TARGET via GW dev IFACE src SOURCE_IP
+                TARGET:
+                    主机路由：IP
+                    网络路由：NETWORK/MASK
+
+            ip route show
+            ip route flush
+                [dev IFACE]
+                [via PREFIX]
+
+    ss命令
+        格式：ss [options] [ FILTER ]
+            选项
+            -t  TCP协议相关
+            -u  UPD协议相关
+            -w  裸套接字
+            -x  unix sock 相关
+            -l  LISTEN 状态连接
+            -a  所有
+            -n  数字格式
+            -p  相关进程及PID
+            -e  扩展信息
+            -m  内存用量
+            -o  计时器信息
+
+            FILTER := [ state TCP-STATE ] [ EXPRESSION ]
+            TCP的常见状态
+                tcp finite state machine
+                LISTEN  监听
+                ESTABLISHED  已建立的连接
+                FIN_WAIT_1
+                FIN_WAIT_2
+                SYN_SENT
+                SYN_RECV
+                CLOSED
+
+            EXPRESSION
+                dport
+                sport
+                示例：'(dport=:ssh or sport=:ssh)'，也可以是 '(dport=:22 or sport=:22)'
+        常用组合
+            -tan  -tanl  -tanlp  -uan
+
+Linux网络属性配置（3）
+    修改配置文件
+
+    ip，mask，gateway，DNS 相关配置
+        /etc/sysconfig/network-scripts/ifcfg-IFACE
+            DEVICE          此配置文件应用到的设置
+            HWARDDR         对应设备的MAC地址
+            BOOTPROTO       激活此设备时使用的地址配置协议，常用的有 dhcp，static，none，bootp
+            NM_CONTROLLED   NM 是 NetworkManager 的简写，表明是否接受 NM 控制，CentOS 6系统建议为 “no“
+            ONBOOT          在系统引导时，是否激活设备
+            TYPE            接口类型，常见有 Ethernet  Bridge
+            UUID            设备唯一标识
+            IPADDR          指明IP地址
+            NETMASK         指明子网掩码
+            GATEWAY         指明网关
+            DNS1            第一个DNS服务器指向
+            DNS2            第二个DNS服务器指向
+            USERCTL         是否允许普通用户控制此设备
+            PEERDNS         如果BOOTPROTO的值为 "dhcp"，是否允许由DHCP Server分配的 dns 服务器指向信息直接覆盖 /etc/resolv.conf 文件
+    路由相关配置文件，默认是不存在的，如果需要，用户要自行创建
+        /etc/sysconfig/network-scripts/route-IFACE
+        两种风格，在配置文件中，选择其一，不能混用
+            1. TARGET via GW
+            2. 每三行定义一条路由
+                ADDRESS#=TARGET
+                NETMASK#=mask
+                GATEWAY#=GW
+
+    给网卡配置多地址
+        ifconfig
+        ip
+        配置文件
+            ifcfg-IFACE-ALIAS
+                DEVICE=ifcfg-IFACE-ALIAS
+
+        ifconfig IFACE-ALIAS
+
+        注意：别名的IP地址不能通过DHCP分配
+    
+    Linux网络属性配置的tui（text user inferface）
+        system-config-network-tui，也可能通过 setup 命令找到
+        通过tui配置，需要重启服务才能生效
+
+    配置当前主机的主机名
+        hostname [HOSTNAME]
+        /etc/sysconfig/network
+            HOSTNAME=
+
+    网络接口识别并命名的相关udev配置文件
+        /etc/udev/rules.d/70-persisten-net.rules
+        
+        卸载网卡驱动
+            modprob -r e1000
+        装载网卡驱动
+            modprob e1000
+
+
+
+
+
 
 
         
