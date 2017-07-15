@@ -1408,6 +1408,130 @@ Linux进程及作业管理
                     cpu分别显示：1 命令(数字)
                 内存部分显示：m 命令(小写m)
                 退出命令：q
+                修改刷新时间间隔：s 命令
+                终止指定进程：k命令
+
+            选项
+                -d #  指明刷新时间间隔，默认为 3 秒
+                -b    以批次方式
+                -n #  显示多少批次
+        
+        htop命令
+            s   跟踪选定进程的系统调用
+            l   显示选定进程打开的文件列表
+            a   将选定的进程绑定至指定的CPU核心
+            t   显示进程树
+
+        vmstat命令
+            vmstat [options]  [delay [ count]]
+            procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu-----
+            r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+            
+            procs
+                r  等待运行的进程队列
+                b  处于不可中断睡眠态的进程个数，被阻塞的队列长度
+            
+            memory
+                swpd  交换内存的使用总量
+                free  空闲物理内存总量
+                buff  用于buff的内存总量
+                cache 用于cache的内存总量
+
+            swap
+                si  数据进入swap中的数据速率(Kb/s)
+                so  数据离开swap的数据速率(Kb/s)
+
+            io
+                bi  以块设备读入数据到系统的速度(Kb/s)
+                bo  保存数据到块设备的速率
+            cpu
+                us  用户空间进程占比
+                sy  内核系统调用占比
+                id  空闲时间占比
+                wa  等待io时间占比
+                st  被偷走的cpu时间占比
+
+            选项
+                -s  显示内存的统计数据
+            
+        pmap
+            pmap - report memory map of a process
+            pmap [ -x | -d ] [ -q ] pids...
+
+            -x  显示详细格式的信息
+
+            另一种实现
+                cat /proc/PID/maps
+
+        glances命令
+            glances  [-bdehmnrsvyz1]  [-B bind] [-c server]  [-p port] [-P password] [--password] [-t refresh] [-f file] [-o output]
+            
+            常用选项
+                -b  以Byte为单位显示网卡数据速率
+                -d  关闭磁盘I/O模块
+                -f  /path/to/somefile  设置输出文件位置，即将命令显示结果保存到文件中
+                -o  {HTML | CSV}  输出文件格式
+                -m  禁止mount模块
+                -n  禁用网络模块
+                -t #  延迟时间间隔
+                -1  每个cpu的相关数据单独显示(数字 1 )
+            
+            C/S模式下运行glances命令
+                服务吕模式
+                    glances -s -B IPADDR   服务器自己的地址
+                
+                客户端模式
+                    glances -c IPADDR  要连入服务器端的地址
+
+        dstat命令
+            dstat [-afv] [options..] [delay [count]]
+            -c  显示cpu相关信息
+            -d  显示磁盘读写速率
+            -g  显示页面相关统计数据
+            -m  显示memory相关统计数据
+            -n  显示netword相关统计数据
+            -p  显示process相关统计数据
+            -r  显示IO请求相关统计数据
+            -s  显示swap相关统计数据
+            --top-cpu  显示当前最占用cpu的进程
+            --top-io   显示当前最占用IO的进程
+            --top-men  显示当前最占用内存的进程
+            --toplatency  显示当前延迟最大的进程
+
+        kill命令
+            向进程发送控制信号，以实现对进程管理
+            显示当前系统的可用信号
+                kill -l
+                man 7 signal
+            
+            常用信号
+                1  SIGHUP   无须关闭进程，让进程重读配置文件
+                2  SIGINT   中止正在运行的进程，相当于 ctrl + c
+                9  SIGKILL  杀死运行的进程
+                15 SIGTERM  终止运行的进程
+                18 SIGCONT
+                19 SIGSTOP
+
+            使用信号的方法
+                1. 使用信号的数字标识 1 2 9
+                2. 信号完整名称 SIGHUP
+                3. 信号简写名称 HUP
+
+            向进程发信号
+                kill [-SIGNAL]  PID...
+            
+            终止”名称“之下的所有进程
+                killall -[SIGNAL]  进程名
+                
+            
+
+
+            
+
+
+
+
+
 
 
 
