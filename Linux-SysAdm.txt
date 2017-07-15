@@ -1355,33 +1355,59 @@ Linux进程及作业管理
 
                 例如：ps -eo "%p %y %x %c"  或  ps axo "%p %y %x %c"
 
-            STANDARD FORMAT SPECIFIERS
+                STANDARD FORMAT SPECIFIERS
 
-                CODE        HEADER    
-                %cpu        %CPU
-                %mem        %MEM
-                args        COMMAND
-                blocked     BLOCKED
-                bsdstart    START
-                bsdtime     TIME   
-                caught      CAUGHT
-                cgroup      CGROUP    
-                cls         CLS
-                cmd         CMD  
-                comm        COMMAND
-                command     COMMAND
-                cp          CP
-                cputime     TIME
-                drs         DRS
-                egid        EGID  
-                egroup      EGROUP
-                eip         EIP    
-                esp         ESP
-                etime       ELAPSED  
-                euid        EUID
-                euser       EUSER                         
+                    CODE        HEADER    
+                    %cpu        %CPU
+                    %mem        %MEM
+                    args        COMMAND
+                    blocked     BLOCKED
+                    bsdstart    START
+                    bsdtime     TIME   
+                    caught      CAUGHT
+                    cgroup      CGROUP    
+                    cls         CLS
+                    cmd         CMD  
+                    comm        COMMAND
+                    command     COMMAND
+                    cp          CP
+                    cputime     TIME
+                    drs         DRS
+                    egid        EGID  
+                    egroup      EGROUP
+                    eip         EIP    
+                    esp         ESP
+                    etime       ELAPSED  
+                    euid        EUID
+                    euser       EUSER                         
 
-            ps -eo pid,user,args --sort user
+                例如：ps -eo pid,user,args --sort user
+
+        pgrep，pkill
+            pgrep [options] pattern
+            pkill [options] pattern
+                -u uid  effectived user
+                -U uid  real user
+                -t terminal  与终端相关进程
+                -l  显示进程名
+                -a  显示完整格式的进程名(在CentOS 6中没有该选项)
+                -P pid  显示其父进程为此处指定进程的子进程列表(大写P)
+                
+        pidof命令
+            根据进程名获取pid
+
+        top命令
+            有多个内建命令
+                排序：
+                    P  CPU百分比
+                    M  内存百分比
+                    T  累积CPU时长
+            
+                首部信息显示(uptime)：l 命令(小写字母l)
+                task及cpu信息：t 命令
+                    cpu分别显示：1 命令(数字)
+                内存部分显示：m 命令(小写m)
+                退出命令：q
 
 
 
