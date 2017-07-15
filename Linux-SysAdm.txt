@@ -1177,6 +1177,220 @@ Linux网络属性配置（3）
         装载网卡驱动
             modprob e1000
 
+    CentOS 7网络配置属性
+        传统命名：以太网  eth[0, 1, 2, 3,...]，wlan[0, 1, 2, 3,...]
+        可预测功能
+            udev支持多种不同的命名方案，如FirmWare，拓扑结构
+        网卡命名机制
+            systemd对网络设备的命名方式
+            1. 如果FirmWare或BIOS为主板上集成的设备提供的索引信息可用，且可预测，则根据此索引进行命名，例如，en01
+            2. 如果FirmWare或BIOS为PCI-E扩展槽提供的索引信息可用，且可预测，则根据此索引进行命名，例如，ens1
+            3. 如果硬件接口物理位置信息可用，则根据此信息进行命名，例如，enp2s0
+            4. 如果用户显示启动，也可根据MAC地址进行命名，例如，enx2387a1dc56
+            5. 上述均不可用，则使用传统命名机制
+
+        名称组成格式
+            en：ethernet
+            wl：wlan
+            ww：wwan
+        名称类型
+            o<index>：集成设备的设备索引号（板上设备）
+            s<slot>：扩展槽的索引号
+            x<MAC>：基于MAC地址的命名
+            p<bus><slot>：enp2s1
+
+        网卡设备的命名过程
+            第一步：
+                udev，辅助工具/lib/udev/rename_device       /usr/lib/udev/rules.d/60-net.rules
+            第二步：
+                biosdevname会根据/usr/lib/udev/rules.d/71-biosdevname.rules
+            第三步:
+                通过检测网络接口设备,根据/usr/lib/rules.d/75-net-description
+                ID_NET_NAME_ONBOARD  ID_NET_NAME_SLOT  ID_NET_NAME_PATH
+
+        回归传统命名方式
+            1. 编辑/etc/default/grub配置文件
+            GRUB_CMDLINE_LINUX="net.ifnames=0 crashkernel=auto rd.lvm.lv=cl/root rd.lvm.lv=cl/swap rhgb quiet"
+            在原来的基础上，加上 net.ifnames=0
+            2. 生成配置文件供grub2使用
+            grup2-mkconfig -o /boot/grub/grub.cfg 或 grup2-mkconfig -o /etc/grub2.cfg，后者是前者的一个链接文件
+            3.重启系统
+
+        地址配置工具，nmcli
+            nmcli [OPTIONS...] OBJECT [COMMAND] [ARGUMENTS...]
+            OBJECT={help | general | networking | radio | connection | device | agent | monitor}
+            device {status | show | set | connect | reapply | modify | disconnect | delete | monitor | wifi | lldp} [ARGUMENTS...]
+            connection {show | up | down | modify | add | edit | clone | delete | monitor | reload | load | import | export} [ARGUMENTS...]
+
+            如何修改IP地址
+                nmcli connection modify IFACE [+|-] setting.property value
+                    setting.property
+                        ipv4.addresses
+                        ipv4.gateway
+                        ipv4.dns
+                        ipv4.method   manual dhcp等
+
+        网络接口配置tui工具，nmtui
+        主机名称配置工具 hostnamectl
+
+        网络客户端工具
+            lftp ftp lftpget wget 
+
+                lftp [-u user [,password]] [-p prot] SERVER
+            子命令 mget get ls help
+
+            wget
+                wget [option]... [URL]...
+                -q 静默模式
+                -c 续传
+                -O 保存位置
+                --limit-rates 指定传输速率
+
+Linux进程及作业管理
+    内核的功用：进程管理，文件系统，网络功能，内存管理，驱动程序，安全功能
+    process：运行中的程序的一个副本
+    task struct，Linux内存存储进程信息的结构
+    task list，多个任务task struct组成的链表
+
+    进程创建
+        init
+            父子关系
+            进程都是由其父进程创建 fork() clone()
+            进程优先级：0-139
+            实时优先级：1-99，数字越大，优先级越高
+            静态优先级：100-139，数字越小，优先级越高
+            nice值：-20-19，正好对应 100-139
+
+        进程内存
+            分页存储
+            MMU Memory Managmetn Unit
+
+        IPC，Inter Process Communication，进程间通信
+            同一主机
+                singal
+                shm   shared memory
+                semerphor
+            不同主机
+                rpc remote procudure call
+                socket
+    进程类型
+        守护进程，daemon，在系统引导进程过程中启动的进程与终端无关
+        前台进程（用户进程），通过终端启动的进程
+        注意：也可反前台启动的进程送往后台，以守护模式运行
+
+    进程状态
+        运行态，running
+        就绪态，ready
+        睡眠态
+            可中断，interruptible
+            不可中断，uninterrutiable
+        停止态，stopped，暂停于内存中，但不会被调度，除非手动启动
+        僵死态，zombie
+    
+    进程分类
+        CPU-Bound
+        IO-Bound
+
+    Linux进程查看管理工具
+        pstree ps pidof pgrep top htop glance pmap vmstat dstat kill pkill job bg fg nohup
+
+        pstree命令，直接使用
+
+        ps命令，process state
+        ps - report a snapshot of the current processes.
+        Linux系统上各进程的相关信息都保存在 /proc/PID 目录下的各个文件中
+
+        ps [options]
+            选项，支持两种风格
+
+            常用组合：aux    BSD风格
+                u  以用户有中心，组织进程状态信息显示
+                a  与终端相关进程
+                x  与终端无关进程
+
+                USER        PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+
+                VSZ  Virtual memory SiZe，虚拟内存集
+                RSS  Resident Size，常驻内存集
+                STAT  进程状态
+                    R  running
+                    S  interruptible sleeping
+                    D  uninterruptible sleeping
+                    T  stopped
+                    Z  zombie
+                    +  前台进程
+                    l  多线程进程（是小写字母l）
+                    N  低优先级进程
+                    <  高优先级进程
+                    s  Session leader（小写s）
+
+            常用组合：-ef
+                -e  显示所有进程，相当于 ax
+                -f  显示完整格式的程序信息
+
+            常用组合：-eFH
+                以进程层级格式显示进程信息
+                -F  显示完整格式的进程信息
+                -H  以层级格式显示进程信息
+
+            常用组合：-eo    axo
+                AIX FORMAT DESCRIPTORS
+
+                    CODE   NORMAL   HEADER
+                    %C     pcpu     %CPU
+                    %G     group    GROUP
+                    %P     ppid     PPID
+                    %U     user     USER
+                    %a     args     COMMAND
+                    %c     comm     COMMAND
+                    %g     rgroup   RGROUP
+                    %n     nice     NI
+                    %p     pid      PID
+                    %r     pgid     PGID
+                    %t     etime    ELAPSED
+                    %u     ruser    RUSER
+                    %x     time     TIME
+                    %y     tty      TTY
+                    %z     vsz      VSZ
+
+                例如：ps -eo "%p %y %x %c"  或  ps axo "%p %y %x %c"
+
+            STANDARD FORMAT SPECIFIERS
+
+                CODE        HEADER    
+                %cpu        %CPU
+                %mem        %MEM
+                args        COMMAND
+                blocked     BLOCKED
+                bsdstart    START
+                bsdtime     TIME   
+                caught      CAUGHT
+                cgroup      CGROUP    
+                cls         CLS
+                cmd         CMD  
+                comm        COMMAND
+                command     COMMAND
+                cp          CP
+                cputime     TIME
+                drs         DRS
+                egid        EGID  
+                egroup      EGROUP
+                eip         EIP    
+                esp         ESP
+                etime       ELAPSED  
+                euid        EUID
+                euser       EUSER                         
+
+            ps -eo pid,user,args --sort user
+
+
+
+
+
+
+
+
+
 
 
 
