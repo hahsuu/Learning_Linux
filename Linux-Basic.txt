@@ -1816,9 +1816,9 @@ vim编辑器
 
 	练习
 		1. 复制/etc/grub.conf文件到/tmp目录，用查找替换命令删除文件中行首的空白字符
-			:%/^[[:space:]]\+//g
+			:%s/^[[:space:]]\+//g
 		2. 复制/etc/rc.d/init.d/function文件到/tmp目录，用查找替换命令给以空白字符开头的行加一个#
-			:%/^[[:space:]]\+/#&/g
+			:%s/^[[:space:]]\+/#&/g
 
 	多文件模式
 		vim FILE1 FILE2 FILE3 ...
