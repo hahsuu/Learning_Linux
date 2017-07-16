@@ -1523,7 +1523,277 @@ Linux进程及作业管理
             终止”名称“之下的所有进程
                 killall -[SIGNAL]  进程名
                 
+Linux任务计划，周期性任务
+    未来的某时间点执行一次任务，at  batch
+    周期性运行某任务  cron
+    邮件服务
+        SMTP Simple Mail Transmission Protocol
+        POP3 Post Office Protocol
+        IMAP4  Internet Mail Access Protocol
+
+        mailx [-s SUBJECT] username[@hostname]
+        邮件正文的生成
+            1. 直接给出，用ctrl + d 结束
+            2. 输入重定向
+            3. 通过管道
+
+        at命令
+            at [option] TIME
+                TIME
+                    HH:MM [yyyy-mm-dd]
+                    noon midnight teatime
+                    tomorrow
+                    now + #{minutes|hours|days|weeks}
+                常用选项
+                    -l 列出指定队列中等待运行的作业，相当于atq
+                    -q QUEUE 队列名为 a，b，c，……
+                    -d 删除指定作业，根目录于atrm
+                    -c 查询特定作业的详细情况
+                    -f /path/form/somefile  从指定的文件中读取任务
+                注意：作业任务执行结果以邮件通知给相关用户
+        batch命令
+            让系统自行选定空闲时间去执行此处指定的任务
+    周期性任务计划 cron
+        相关任务包
+            cronie  主程序包，提供了crond守护进程及相关辅助工具
+            cronie-anacron  cronie补充程序，用于监控cronie任务执行状况，如croie中的任务在过去该运行的时间点未能正常运行，则anacron会随后启动一次此任务
+            crontabs 包含CentOS提供系统维护任务
+        注意：要确保crond守护进程处于运行状态
+            CentOS 7  systemctl status crond
+            CentOS 6  service crond status
+
+        计划要周期性执行的任务提交给crond，由其来实现到点运行
+            系统cron任务
+                系统维护作业
+
+                /etc/crontab
+                    # For details see man 4 crontabs
+
+                    # Example of job definition:
+                    # .---------------- minute (0 - 59)
+                    # |  .------------- hour (0 - 23)
+                    # |  |  .---------- day of month (1 - 31)
+                    # |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+                    # |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+                    # |  |  |  |  |
+                    # *  *  *  *  * user-name  command to be executed
+
+            用户cron任务
+                crontab命令
+            例如，晚上9点10分运行echo命令
+                10 21 * * * gentoo /bin/echo 'Howday'
+
+            时间表示法
+                1. 特定值
+                    给定时间点的有效取值范围内的值
+                2. *
+                    给定时间点有效取值范围内的所有值
+                    表示“每一……”
+                3. 离散取值  ,
+                    #, #, #
+                4. 连续取值
+                    #-#
+                5. 在指定时间范围上，定义步长
+                    /#  #为步长
+                    */3
+            例如，每3小时echo命令
+                0 */3 * * * gentoo /bin/echo 'Howday'
+
+            用户cron
+                通过crontab命令定义，每个用户都有一个专用的cron任务文件
+                    /var/spool/cron/USERNAME
+                
+                crontab命令用法
+                     crontab [-u user] [-l | -r | -e] [-i]
+                     -l  列出所有任务
+                     -e  编辑任务
+                     -r  移除所有任务
+                     -i  同 -r 一起使用，有选择的移除指定任务
+                     -u user  仅root用户可运行，代为指定用户管理cron任务
+
+                注意：运行结果通过邮件通知用户，如果不想收到邮件
+                    1. COMMAND > /dev/null
+                    2. COMMAND &> /dev/null
+
+            对于cron任务来讲，% 有特殊作用，如果在命令中要使用 % 则需要转义，不过，如果把 % 放置于单引号中，也可以不转义
+
+            思考：
+                1. 如何在秒级别运行任务
+                    * * * * * for min in 0,1,2;do echo 'hi';sleep 10; done
+                2. 如何实现第7分钟运行一次任务
+
+            sleep命令
+                sleep number[SUFFIX]
+                    s 秒 默认，可省略
+                    m 分
+                    h 小时
+                    d 天
+
+        练习
+            1. 每4小时备份一次 /etc 目录至 /back 目录中，保存文件的格式为“etc-yyyy-mm-dd-HH.tar.xz”
+                0 */4 * * * tar -cvJf /backup/etc-$(date "+%F-%H").tar.xz /etc
+            2. 每周 2，4，7 备份 /var/log/messages 文件到 /log 目录中，文件名形如“messages-yyyymmddd”
+                0 0 * * 2,4,7 cp /var/log/messages /backup/messages-$(date "+%Y%m%d")
+            3. 每两小时取出当前系统 /proc/meminfo 文件中以 S 或 s 开头的信息，追加到 /tmp/meminfo.txt
+                0 */2 * * * grep "^[Ss].*" /proc/meminfo >> /tmp/meminfo.txt
+            4. 工作日内，每两小时执行一次“ip addr show”命令
+                0 */2 * * 1-5 ip addr show
+
+CentOS 5 和 CentOS 6 的启动流动
+    Linux  kernel + rootfs
+        kernel：进程管理，内存管理，网络功能，安全功能，驱动程序，文件系统
+        内核设计流派
+            单内核设计 Linux
+                把所有功能集成于同一个程序
+            微内核设计 Windows  Solaris
+                每种功能使用一个独立子系统实现
+        
+        Linux内核特点
+            支持模块化  .ko，kernel object
+            支持模块动态装载和卸载
+
+        组成部分
+            核心文件
+                /boot/vmlinuz-VERSION-release
+                ramdisk
+                    CentOS 5  /boot/initrd-VERSION-release.img
+                    CentOS 6  /boot/iniramfs-VERSION-release.img
+            模块文件
+                /lib/modules/VERSION-release/*
             
+    CentOS系统启动流程
+        POST 加电自检  Power On and Self Testing
+            ROM，CMOS，BIOS
+        
+        Boot Sequence
+            按次序查找各引导设备，第一个有引导程序的设备即为本次启动设备
+
+        bootloader  引导加载器程序
+            功能：提供一个菜单，允许用户选择要启动的系统或不同的内核版本，把用户选定的内核加载到内存的特定空间中，解压、展开，并把系统控制权移交给内核
+
+            Windows  ntloader
+            Linux
+                LILO  LInux LOader
+                GRUB  Grand Uniform Bootloader
+                    GRUB 0.x  GRUB Legacy
+                    GRUB 1.x  GRUB2
+                    
+            MBR
+                446：bootloader
+                64：fat，文件分区表
+                2：55AA
+
+    GRUB
+        bootloader 1st stage
+        1.5 stage
+        disk  2nd stage
+
+    kernel
+        自身初始化
+            检测可识别到的所有硬件设备
+            加载硬件驱动程序(可能会借助于ramdisk加载驱动)
+            以只读方式挂载根文件系统
+            运行用户空间的第一个应用程序 /sbin/init
+
+        init程序类型
+            sysV  init  CentOS 5 
+            配置文件 /etc/inittab
+
+            upstart  init  CentOS 6 
+            配置文件 /etc/inittab   /ect/init/*.conf
+
+            systemd  systemd  CentOS 7
+            配置文件 /usr/lib/systemd/system  /etc/systemd/system
+
+        ramdisk
+            内核的特性之一，使用缓冲和缓存画加速对磁盘上文件的访问
+            ramdisk -> ramfs
+            CentOS 5 initrd  工具程序  mkinitrd
+            CentOS 6 initramfs  工具程序  mkinitrd  dracut
+
+    系统初始化
+        POST -> BootSequence -> bootloader(MBR) -> kernel(ramdisk) -> rootfs(只读) -> init
+
+    /sbin/init
+        CentOS 5
+        运行级别：为了系统的运行或维护等应用目的设定
+            0-6，7个级别
+            0: 关机
+            1: 单用户模式，single(root)，维护模式
+            2: 多用户模式，会启动网络功能，不会启用NFS
+            3: 多用户模式，正常模式，文本界面
+            4: 预留级别，可同 3 级别
+            5: 多用户模式，正常模式，图形界面
+            6: 重启
+
+            默认级别：3，5
+            切换级别：init #
+            查看级别：runlevel who -r
+        
+        配置文件
+            /etc/inittab
+            每一行定义一种action以及与之对应的process
+                id:runlevel:action:process
+                action
+                    wait  切换到此级别时运行
+                    respwan  此procss终止，就重新启动之
+                    initdefault  设定默认运行级别，process省略
+                    sysinit  完成系统系统初始化方式，此处一般为 /etc/rc.d/rc.sysinit
+                    ……
+
+                id:3:initdefault:
+                si::sysinit:/etc/rc.d/rc.sysinit
+                l0:0:wait:/etc/rc.d/rc 0
+                l1:1:wait:/etc/rc.d/rc 1
+                ……
+                l6:6:wait:/etc/rc.d/rc 6
+
+                说明：rc 0 意味着读取 /etc/rc.d/rc0.d/下的脚本，分别进行进行执行，该目录下的脚本都是 /etc/rc.d/init.d/ 目录下脚本的链接文件，分两类
+                    K##*
+                    S##*
+                    其中##是两位数字，表示运行次序，越小就越先运行
+                    以 K 打头的执行的是 stop 操作
+                    以 S 打头的执行的是 start 操作
+                    执行方式
+                        for srv in /etc/rc.d/rc0.d/K*; do
+                            $srv stop
+                        done
+
+                         for srv in /etc/rc.d/rc0.d/S*; do
+                            $srv start
+                        done
+
+            chkconfig命令
+                查看服务在所有级别的启动或关闭设定情形
+                    chkconfig --list name
+                添加
+                    sysv的脚本放置于 /etc/rc.d/init.d (/etc/init.d)
+                    chkconfig --add name
+
+                    #!/bin/sh
+                    #
+                    # crond          Start/Stop the cron clock daemon.
+                    #
+                    # chkconfig: 2345 90 60
+
+                删除
+                    chkconfig --del name
+                
+                修改其指定级别的链接类型
+                    chkconfig [--level LLLL] name <on|off|reset>
+                        --level LLLL 设置级别，省略时为 2345
+                
+            注意：正常级别最后启动一个服务 S99local 没有链接到 /etc/rc.d/init.d/ 下的一个服务脚本，而是指向了 /etc/rc.d/rc.local 脚本，因此，不便或不需写为服务脚本放置 /etc/rc.d/init.d/ 目录，且又想开机时自动运行的脚本，可直接放置于 /etc/rc.d/rc.local 文件中
+
+
+
+
+
+
+
+
+    
+                
 
 
             
