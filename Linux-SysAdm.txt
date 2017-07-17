@@ -1785,6 +1785,318 @@ CentOS 5 和 CentOS 6 的启动流动
                 
             注意：正常级别最后启动一个服务 S99local 没有链接到 /etc/rc.d/init.d/ 下的一个服务脚本，而是指向了 /etc/rc.d/rc.local 脚本，因此，不便或不需写为服务脚本放置 /etc/rc.d/init.d/ 目录，且又想开机时自动运行的脚本，可直接放置于 /etc/rc.d/rc.local 文件中
 
+            tty1:2345:respawn:/sbin/mingetty tty1
+            ....
+            tty6:2345:respawn:/sbin/mingetty tty6
+
+            mingetty会调用 login 程序
+
+        /etc/rc.d/init.d/rc.sysinit
+            1. 设置主机名
+            2. 设置欢迎信息
+            3. 激活 udev 和 selinux
+            4. 挂载 /etc/fstab 文件中定义的文件系统
+            5. 检测根文件系统，并以读写方式重新挂载
+            6. 设置系统时钟
+            7. 激活 swap 设备
+            8. 根据 /etc/sysctl.conf 文件设置内核参数
+            9. 激活 lvm 及 software raid 设备
+            10. 加载额外设备驱动程序
+            11. 清理操作
+
+    总结：
+        /sbin/init -> /etc/inittab -> 设置默认运行级别 -> 运行系统初始化脚本，完成系统初始化 -> 关闭对应级别下需要关闭的服务，启动需要启动的服务 -> 设置登录终端
+
+    CentOS 6 
+        init 程序为upstart，其配置文件
+            /ect/inittab/    /etc/init/*.conf
+        注意：/etc/init/*.conf 遵循 upstart 配置文件语法
+
+    GRUB
+        grub legacy
+            stage 1: mbr
+            stage 1.5 mbr之后的扇区，让stage 1 中的bootloader能识別 stage 2 所在分区上的文件系统
+            stage 2: 磁盘分区上(/boot/grub)，本身及内核通常放置于一个基本分区
+            
+            配置文件： 
+                /boot/grub/grub.conf
+                /etc/grub.conf -> /boot/grub/grub.conf
+
+            功用：
+                1. 提供菜单，并提供交互式接口
+                    e  编辑模式，用于编辑菜单
+                    c  命令模式，交互式接口
+
+                2. 加载用户选择的内核或操作系统
+                    允许传递参数给内核
+                    可隐藏此菜单
+                
+                3. 为菜单提供保护机制
+                    为编辑菜单进行认证
+                    为启用内核或操作系统进行认证
+
+            如何识别设备
+                (hd#,#)
+                    hd#  磁盘编号，用数字表示，从 0 开始编号
+                    #  分区编号，用数字表示，从 0 开始编号
+                例如(hd0,0)
+
+            grub命令行接口
+                help  获取帮助列表
+                    help KEYWORD   详细帮助信息
+                
+                find  查找文件
+                    find (hd#,#)/PATH/TO/SOMEFILE
+
+                root (hd#,#)  设定根
+                    root (hd0,0)
+
+                kernel /PATH/TO/KERNEL_FILE  设定本次启动用到的内核文件，还可以添加命令行参数
+                    kernel 命令参数
+                    例如 init=/path/to/init   selinux=0
+
+                initrd /PATH/TO/INITRAMFS_FILE  设定为选定的内核提供额外的 ramdisk
+                
+                boot  引导启动选定的内核
+
+            手动在 grub 命令行接口启动系统
+                grub> root (hd0,0)
+                grub> kernel /vmlinuz-VERSION-release ro root=/dev/DEVICE
+                grub> initrd /initramfs-VERSION-release.img
+                grub> boot
+
+            配置文件  /boot/grub/grub.conf
+                配置项
+                    default=#  设定默认启动的菜单项，菜单项(title)编号从0开始
+                    timeout=#  指定菜单项等待“选择选项”时长
+                    splashimage=(hd#,#)/path/to/XPM_PIC_FILE  指明菜单背景图片路径
+                    hiddenmenu  隐藏菜单
+                    password [--md5]  STRING  菜单编辑认证
+                    title TITLE  定义菜单项“标题”，可出现多次
+                        root (hd#,#)   grub获取 stage 2 及 kernel 文件所在设备分区，为 grub 的“根”
+                        kernel /PATH/TOVMLINUZ_FILE [parameters]  启动的内核
+                        initrd /PATH/TOINITRAMFS_FILE   内核配置的ramfs文件
+                        password [--md5]  STRING  启动选定的内核或操作系统进进行认证
+
+                    密码加密串生成工具
+                        grub-md5-crypt
+            
+            进入单用户模式
+                1. 编辑 grub 菜单(e 命令，选定要编辑的 title)
+                2. 在选定的 kernel 后面，附加 1 S s 或 single 都可以
+                3. 在 kernel 所在行，键入“b”命令
+
+            安装grub
+                1. grub-install
+                    grub-install --root-directory=ROOT /dev/DISK
+                2. grub
+                    grub> root (hd#,#)
+                    grub> setup (hd#)
+
+        练习
+            1. 新加硬盘，提供直接单独bash系统
+            2. 破坏本机grub stage 1，而后在救援模式下修复
+            3. 设置grub保护功能
+
+Linux Kernel
+    单内核体系设计，但充分借鉴了微内核设计优点，为内核引入模块化机制
+
+    内核组成部分
+        kernel，内核核心，一般为bzImage，通常在 /boot 目录下，名称为 vmlinuz
+        kernel object，内核对象，一般放置于 /lib/modules/VERSION-release/ 目录下
+        辅助文件，ramdisk
+            initrd
+            initramfs
+
+    运行中内核的版本
+        uname 命令
+            uname - print system information
+            选项
+                -n  显示节点名称
+                -r  显示VERSION-release
+    
+    模块
+        lsmod命令
+            显示由核心已经装载的内核模块
+            显示的内容来自 /proc/modules
+
+        modinfo
+            显示模块详细描述信息
+            modinfo [ -0 ]  [ -F field ]  [ -k kernel ]  [ modulename|filename... ]
+            -n 文件路径
+            -p 显示模块参数
+            -a author
+            -d description
+            -l license
+
+        dedmod
+            内核模块依赖文件关系及系统信息生成工具
+
+    装载或卸载内核模块
+        insmod  
+            insmod [ filename ]  [ module options... ]
+        rmmod
+            rmmod [ -f ]  [ -w ]  [ -s ]  [ -v ]  [ modulename ]
+        此两个命令在装载或卸载时，不会装载或卸载依赖模块
+
+    /proc 目录
+        内核把自己内部状态信息及统计信息，以及可配置参数通过一个伪文件系统 procfs 加以输出
+        参数：
+            只读，输出信息
+            可写，可接受用户指定“新值”来实现对内核某功能或特性的配置
+                /proc/sys
+                1. sysctl命令用来查看或设定此目录中的参数
+                    sysctl -w path.to.parameter=VALUE
+                    如： sysctl -w kernel.hostname=mail.lsu.edu.cn
+
+                2. 通过 echo 命令重定向的方式也可以修改大多数参数的值
+                    echo "VALUE" > /path/to/parameter
+                    如： echo "mail.lsu.edu.cn" > /proc/sys/kernel/hostname
+
+        sysctl命令
+            配置文件  /etc/sysctl.conf
+            设置参数
+                sysctl -w parameter=VALUE
+            通过配置文件设置参数
+                sysctl -p [/path/to/conf_file]
+
+        内核中路由转发
+            /proc/sys/net/ipv4/ip_forward
+
+        常用的几个参数
+            net.ipv4.ip_forward
+            v.drop_cache
+            kernel.hostname
+
+    /sys 目录
+        sysfs，输出内核识别出的硬件属性的相关信息，也有内核对硬件特性的设定信息，有些参数可以修改的，用于调整硬件工作特性，udev通过此路径下的输出信息为各设备创建所需的设备文件，udev是运行在用户空间的程序，专用工具有 udevadmin  hotplug
+        udev 为设备创建设备文件时，会读取事先定义好的规则文件，一般在 /etc/udev/rules.d/  及 /usr/lib/udev/rules.d/ 目录下
+
+    ramdisk文件制件
+        1. mkinitrd 命令
+            为当前正在使用的内核重新制件 ramdisk 文件
+            mkinitrd /boot/initramfs-$(uname- r).img $(uname -r)
+        2. dracut 命令
+            为当前正在使用的内核重新制件 ramdisk 文件
+            dracut /boot/initramfs-$(uname- r).img $(uname -r)
+
+编译内核
+    前提
+        1. 准备好开发环境
+        2. 获取目标主机硬件设备的相关信息
+        3. 获取到目标主机系统功能相关信息，如启用的文件系统
+        4. 获取内核源码包
+
+    准备好开发环境
+        包组  Server Platform Development  和 Development Tools  
+    
+    目标主机硬件信息
+        cpu
+            cat /proc/cpuinfo
+            x86_info -a (可能需要安装该命令)
+            lscpu
+
+        PCI设备
+            lspci [-v | -vv]
+            lsusb [-v | -vv]
+            lsblk
+
+    了解全部硬件设备信息
+        hal-device
+
+    简单依据模板文件编译内核过程
+        tar xf linxu-2.6.32-642.11.1.el6.x86_64 -C /sur/src
+        cd /usr/src
+        ln -sv linxu-2.6.32-642.11.1.el6.x86_64 linux
+        cp /boot/config-$(uname -r) ./.config
+        make menuconfig
+        screen
+        make -j #
+        make modules_install
+        make install
+        重新启动系统并测试使用新内核
+
+Linux内核编译
+    编译内核步骤
+        1. 配置内核选项
+
+            支持更新模式进行配置
+            (1) makeconfig  基于命令行以遍历方式支配置内核中可配置的每个选项
+            (2) make menuconfig  基于 curses 的文本窗口
+            (3) make gconfig  基于GTK开发环境的窗口界面
+            (4) make xconfig  基于Qt开发环境的窗口界面
+            
+            支持“全新配置”模式进行配置
+            (1) make defconifg  基于内核为目标平台提供的“默认”配置进行配置
+            (2) make allnoconfig  所有选项均回答“no”
+
+        2. 编译
+            make -j #
+
+            如何编译内核中一部分功能
+                注意：需要位于源码目录树中的基目录
+
+                (1) 只编译某子目录中的相关代码
+                    # cd /usr/src/linux
+                    # make dir/
+
+                (2) 只编译一个特定的模块
+                    # cd /usr/src/linux
+                    # make dir/file.ko
+                    例如，只为 intel 的 e1000 网卡编译驱动
+                        # make drives/net/ethernet/intel/e1000/e1000.ko
+
+    如何交叉编译内核
+        编译的目标平台与当前平台不相同
+            # make ARCH=arch_name
+        要获取特定目标平台的使用帮助
+            # make ARCH=arm help
+
+    如何在已经执行编译的内核源码树中重新编译
+        事先清理
+            # make clean   
+                清理大多数编译生成的文件，保留config配置文件 
+            # make mrproper
+                清理所有编译生成的文件、config配置文件及某些备份文件
+            # make distclean
+                mrproper，patchs以及编辑器备份文件，即相当于删除修改过的源码目录树，再重新解压
+
+    screen命令
+        打开新的screen
+            # screen
+        退出并关闭screen
+            # exit
+        剥离当前screen
+            ctrl+a, d
+        显示所有已经打开的screen
+            # screen -ls
+        恢复某screen
+            # screen -r SESSION
+
+    
+                
+
+    
+        
+
+
+
+
+    
+
+
+
+
+            
+
+
+
+
+
+
+
+
+
 
 
 
