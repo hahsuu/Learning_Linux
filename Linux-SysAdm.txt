@@ -2073,6 +2073,200 @@ Linux内核编译
         恢复某screen
             # screen -r SESSION
 
+CentOS系统安装
+    bootloader -> kernel(initramfs) -> rootfs -> init
+    anaconda   安装程序
+        tui  基于 curses 的文本窗口
+        gui  图形窗口
+
+    CentOS的安装程序启动过程
+        MBR  boot.cat
+        stage 2  isolinux/islinux.bin
+            配置文件  isolinux/isolinux.cfg
+        加载内核  ioslinux/vmlinuz
+        向内核传递参数  append initrd=initrd.img ……
+        装载根文件系统，并启动anaconda
+
+        默认启动GUI窗口
+        若要显式指定使用TUI窗口，可以向内核传递 text 参数
+            boot:  linux text
+
+        注意：上述内容应位于引导设备上，而后续的 anaconda 及其安装用到的程序包有几种方式可用：
+            本地光盘
+            本地硬盘
+            FTP  HTTP NFS 等方式上的 yum repository
+            如果相手动指定安装源
+                boot: linux method
+
+    anaconda 应用工作过程
+        1. 安装前配置阶段
+            安装过程中使用的语言
+            键盘
+            时区
+            分区设定，MBR安装位置
+            选定程序包
+            ……
+        2. 安装阶段
+            对目标磁盘进行分区、格式化
+            将选定的程序安装到目标位置
+            安装bootloader
+        3. 首次启动
+            iptables
+            selinux
+            core dump  核心转储
+
+    anaconda的配置方式
+        1. 交互式配置
+        2. 通过读取事先给定的配置文件，自动完成配置
+            kickstart文件
+
+    安装引导选项
+        boot:
+            text  文本安装方式
+            method  手动指定使用产安装方式
+        与网络相关的引导选项
+            ip=ADDR
+            netmask=MASK
+            gateway=GW
+            dns=DNS_SERVER_IP
+            ifname=NAME:MAC_ADDR
+        与运程访问功能相关的引导选项
+            vnc
+            vncpassword=‘PASSWORD'
+        指明kickstart文件的位置
+            ks=
+                DVD drive  ks=cdrom:/PATH/TO/KICKSTAT.FILE
+                HD drive  ks=hd:/device/dir/KICKSTAT.FILE
+                HTTP  ks=http://host:port/PATH/TO/KICKSTAT.FILE
+                FTP  ks=ftp://host:port/PATH/TO/KICKSTAT.FILE
+                HTTPs  ks=https://host:port/PATH/TO/KICKSTAT.FILE
+        
+        启动紧急救援模式
+            rescue
+        
+        官方文档  《Installation Guide》
+
+    kickstart文件的格式
+        命令段：指明各种安装前配置，如键盘类型等
+        程序包段：指明要安装的程序包组或程序包，以及不安装的程序包
+            %packages
+                @group_name
+                package
+                -package
+            %end
+        脚本段：
+            %pre   安装前脚本
+                运行环境为安装介质上微型Linux
+            %post  安装后脚本
+                运行环境为安装完成之后的系统
+
+        命令段中的命令
+            必备命令
+                authconfig  认证方式
+                    authconfig --useshadown --pawwalgo=512
+                bootloader  bootloader的安装位置及相关配置
+                keyboard  设定键盘类型
+                lang  语言类型
+                part  创建分区
+                rootpw  指明root用户密码
+                timezone  指明时区
+            可选命令
+                install OR upgrade
+                text  文本安装界面
+                network
+                firewall
+                selinux
+                halt
+                poweroff
+                reboot
+                repo
+                user  安装后，创建新用户
+                url  指明安装源
+
+        创建kickstart文件的方式
+            直接手动编辑
+                依据某模板修改
+            可使用创建工具  system-config-kickstart(CentOS 6)
+                依据某模板修改
+        
+        检查ks文件中的语法错误
+            ksvalidator /PATH/TO/KICKSTAT_FILE
+
+    基于isolinux目录创建引导盘：
+        # mkisofs -R -J -T -v --no-emul-boot --boot-load-size 4 --boot-info-table -V "CentOS 6.5 x86_64 boot" -b isolinux/isolinux.bin -c isolinux/boot.cat -o /root/boot.iso myiso/
+
+SELinux
+    SELinux  secured Enhanced Linux，工作于Linux内核
+    DAC  自主访问控制
+    MAC  强制访问控制
+
+    SELinux工作级别
+        strick   每个进程都受到 selinux 的控制
+        targeted  仅有限个进程受到 selinux 的控制
+            只监控容易被入侵的进程
+
+    SELinux为每个文件提供了安全标签，也为进程提供了安全标签
+        user:role:type
+        user  SELinux的user
+        role  角色
+        type  类型
+
+    SELinux规则库
+        规则：哪种域能访问哪种或哪些种类型内文件
+
+    配置SELinunx
+        SELinux是否启用
+        给文件重新打标
+        设定某些布尔型特性
+
+    SELinux的状态
+        enforcing  强制，每个受限的进程都必然受限
+        permissive  启用，每个受限的进程违规操作不会被禁止，但会被记录于审计日志中
+        disabled  关闭
+
+    相关命令
+        getenforce  获取SELinux当前状态
+        setenforce 0 | 1
+            0  设置 permissive
+            1  设置 enforced
+        此设置仅当前系统有效，重启系统之后无效
+
+    配置文件
+        /etc/sysconfig/selinux  /etc/selinux/config
+
+    给文件重新打标
+        chcon
+        chcon [OPTION]... [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE...
+            -R 递归打标
+    还原默认标签
+        restorcon [-R] filename
+    
+    布尔型规则
+        getsebool命令
+            getsebool [-a] [boolean]
+        setsebool
+            setsebool [ -PV] boolean value | bool1=val1 bool2=val2 ...
+
+bash脚本编程
+    函数：结构化编程及代码重用，function关键字
+    while循环
+        while CONDITION; do
+            循环体
+        done
+
+    CONDITION  循环控制条件，进行循环体运行之前，先进行条件判断，执行每次循环之后，再做判断，如果条件为“真”，则执行循环体中的相关语句，直到条件为“false”，循环结束。因此，CONDITION一般应有循环控制变更，变量的值会在循环过程中被修改。
+
+    练习
+        1. 添加10个用户，用while循环
+        2. 打印九九乘法口诀表，分别用for循环和while循环
+        3. 利用RANDON生成10个随机数，输出到屏幕，并输出其中的最大值和最小值
+
+
+
+            
+
+
+
     
                 
 
