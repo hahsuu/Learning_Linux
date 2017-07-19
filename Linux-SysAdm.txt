@@ -2263,6 +2263,19 @@ bash脚本编程
 
 
 
+
+echo '/etc/sysconfig/network/' | sed  's/.*\/\([^/]\+\/\?$\)/\1/g' | cut -d"/" -f1
+echo '/etc/sysconfig/network/' | sed -r 's/.*\/([^/]+\/?$)/\1/g' | cut -d"/" -f1
+echo '/etc/sysconfig/network' | sed -r 's@.*/([^/]+/?$)@\1@g' | cut -d"/" -f1
+
+
+echo '/etc/sysconfig/network' | sed 's@[^/]\{1,\}/\?$@@'
+echo '/etc/sysconfig/network' | sed -r 's@[^/]{1,}/?$@@'
+
+
+
+
+
             
 
 
