@@ -2261,16 +2261,325 @@ bash脚本编程
         2. 打印九九乘法口诀表，分别用for循环和while循环
         3. 利用RANDON生成10个随机数，输出到屏幕，并输出其中的最大值和最小值
 
+sed编辑器
+    sed：Stream EDitor，行编辑器
+    用法
+        sed [option]... 'script' inputfile
+        常用选项
+            -n  不输出模式中的内容至屏幕
+            -e  多点编辑
+            -f  /PATH/TO/SCRIPT_FILE  从指定文件中读取脚本
+            -r  支持使用扩展正则表达式
+            -i  原处编辑
+        
+        地址定界
+            1. 不给地址，对全文处理
+            2. 单地址
+                #  指定的行
+                /pattern/  被此处模式能匹配到的所有行
+            3. 地址范围
+                #, #
+                #, +#
+                /pat1/,/pat2/
+                #, /pat1/
+        
+        编辑命令
+            d  删除
+            p  显示模式空间中的内容
+            a \ 'text'  在能够被模式匹配到的行后追加文本
+            i \ 'text'  在能够被模式匹配到的行前添加文本
+                两者支持使用 \n 实现多行追加
+            c \ 'text'  替换为单行或多行文本
+            w /PATH/TO/SOMEFIEL  保存模式空间中的内容到指定文件
+            =  为模式空间中的行打印行号
+            r /PATH/TO/SOMEFIEL  读取指定文件中的文本流至模式空间中匹配到的行的行后
+            !  取反条件
+            s///  查找替换
+                支持使用其它分隔符，如，s@@@  s###
+                替换标记
+                    g  行内全局替换
+                    p  如果替换成功，则显示之
+                    w /PATH/TO/SOMEFILE  将替换成功的内容保存
+
+    练习
+        1. echo一个绝对路径给sed，取出其目录名或基名
+            基名
+                echo '/etc/sysconfig/network/' | sed  's/.*\/\([^/]\+\/\?$\)/\1/g' | cut -d"/" -f1
+                echo '/etc/sysconfig/network/' | sed -r 's/.*\/([^/]+\/?$)/\1/g' | cut -d"/" -f1
+                echo '/etc/sysconfig/network' | sed -r 's@.*/([^/]+/?$)@\1@g' | cut -d"/" -f1
+
+            目录
+                echo '/etc/sysconfig/network' | sed 's@[^/]\{1,\}/\?$@@'
+                echo '/etc/sysconfig/network' | sed -r 's@[^/]{1,}/?$@@'
+
+    高级编辑命令
+        h  把模式空间中的内容覆盖至保持空间
+        H  把模式空间中的内容追加至保持空间
+        g  从保持空间中取出数据至模式空间
+        G  从保持空间中取出数据追加至模式空间
+        x  把模式空间中与保持空间内容互换
+        n  读取匹配到的行的下一行至模式空间
+        N  追加匹配到的行的下一行至模式空间
+        d  删除模式空间的行
+        D  删除多行模式空间中的所有行
+
+        sed -n 'n;p' FILE   显示偶数行
+        sed '1!G;h;$!d' FILE  逆向显示文件内容
+        sed '$!N;$!D' FILE  取文件最后两行
+        sed '$!d' FILE  取文件最后一行
+        sed 'G' FILE  每行之后添加空白行
+        sed '/^$/d;G' FILE  每行添加空白行，如果有连续多行空白行，则合并成一行
+        sed 'n;d' FILE  显示奇数行
+        sed -n '1!G;h;$p' FILE  逆向显示文件内容
+
+bash脚本编程
+    until CONDITION; do
+        循环体
+    done
+
+    进入条件：false
+    退出条件：true
+
+    循环控制语句
+        continue [N]  提前结束第N层的本轮循环而直接进入下一轮循环判断
+
+        while CONDITION1; do
+            CMD1
+            ...
+            if CONDITION2; then
+                continue
+            fi
+            CMDn
+            ...
+        done
+
+        break [N]  提前结束循环
+
+        创建死循环
+            while true; do
+                循环体
+            done
+
+    while的特殊用法(遍历文件每一行)
+        while read line; do
+            循环体
+        done < /PAHT/TO/SOMEFIEL
+
+    for循环的特殊格式
+        for((循环控制变量初始化;各种判断表达式;循环控制变量修改表达式));do
+            循环体
+        done
+
+        for((i=1;i<=100;i++)); do
+            let sum+=$i
+        done
+
+    case条件判断语句
+        case 变量引用 in 
+        PAT1)
+            分支1
+            ;;
+        PAT2)
+            分支2
+            ;;
+        PAT3)
+            分支3
+            ;;
+        ...
+        *)
+            默认分支
+            ;;
+        esac
+
+    case支持glob风格的通配
+        *  任意长度任意字条
+        ?  任意单个字符
+        []  指定范围内的任意字符
+        a|b  a 或者 b
+
+        function，函数
+            代码重用
+            模块化编程
+            结构化编程
+
+        语法一
+            function f_name {
+                函数体
+            }
+
+        语法二
+            f_name() {
+                函数体
+            }
+
+        函数只有被调用时才会执行
+        调用：给定函数名
+            函数名出现的地方，会被自动替换为函数代码
+
+        函数生命周期
+            被调用时创建，返回时终止
+
+        return命令，返回自定义状态结果
+            0  成功
+            1-255  失败
+
+        函数返回值
+            函数的执行结果返回值
+                1. 使用echo或print命令
+                2. 函数体中被调用的命令的执行结果
+        
+        函数退出状态码
+            1. 默认取函数体中最后一条命令的执行结果
+            2. 自定义退出码   return
+
+        函数可以接受参数
+            传递参数给函数，调用函数时，在函数名后面以空白分隔符给定参数列表即可，例如：
+                testfun agr1 arg2 arg3
+            在函数体中可使用 $1 $2 $3 $* $@ $# 等特殊变量
+            
+        变量作用域
+            本地变量：当前shell进程，为了执行脚本会启动专用的shell进程，因此，本地变量作用范围是当前脚本程序
+            局部变量：函数的生命周期，函数结束时被自动销毁
+
+            如果函数中有局部变量与本地变量同名
+            局部变量定义
+                local name=value
+
+systemd
+    init   
+        CentOS 5  SysV       init
+        CentOS 6  upstart    init
+        CentOS 7  systemd    systemd
+
+    systemd的新特性
+        系统引导实现服务并行启动
+        按需激活进程
+        系统状态快照
+        基于依赖关系定义服务控制逻辑
+
+    核心概念  Unit
+        配置文件进行标识和配置，文件中主要包含了系统服务，监听socket，保存的系统快照及其经与init相关信息，配置文件位置：
+            /usr/lib/systemd/system        *
+            /run/systemd/system
+            /etc/systemd/system            *
+
+    Unit类型
+        Service Unit  文件扩展名为 .service 用于定义系统服务
+        Target Unit  文件扩展名为 .target 用于模拟实现“运行级别”
+        Device Unit  文件扩展名为 .device 定义内核识别的设备
+        Mount Unit  文件扩展名为 .mount 定义文件系统挂载点
+        Socket Unit  文件扩展名为 .socket 用于标识进程间通信的socket文件
+        snapshot Unit  文件扩展名为 .snapshot 管理系统快照
+        swap Unit  文件扩展名为 .swap 用于标识swap设备
+        Automount Unit  文件扩展名为 .Automount 文件系统自动挂载点
+        Path Unit  文件扩展名为 .path 用于定义文件系统中的一个文件或目录
+
+    关键特性
+        基于socket的激活机制，socket与服务程序分离
+        基于bus激活机制
+        基于device的激活机制
+        基于path的激活机制
+        系统快照，保存各Unit的状态信息
+        向后兼容SysV init脚本
+
+    不兼容
+        systemctl命令固定不变
+        非由systemd启动的服务，systemctl无法与之通信
+
+    管理系统服务
+        CentOS 7  Service Unit
+        能兼容早期服务脚本
+
+        命令   systemctl COMMAND name.service
+
+            启动                  service name start          systemctl start name.service
+            停止                  service name stop           systemctl stop name.service
+            重启                  service name restart        systemctl restart name.service
+            状态                  service name status         systemctl status name.service
+            条件式重启             service name conrestart     systemctl try-start name.service
+            
+            重载或重启服务          
+                systemctl reload or restart name.service
+
+            重载或条件式重启服务     
+                systemctl reload or try-restart name.service
+
+            禁止开机自启设置        
+                systemctl mask name.service
+
+            取消禁止开机自启设置     
+                systemctl unmask name.service 
+
+            查看某服务当前激活与否   
+                systemctl is-active name.service
+
+            查看所有已激活的服务
+                systemctl list-unit --type service
+            
+            查看所有服务
+                systemctl list-unit --type service --all
+
+            查看服务开机是否自启
+                systemctl is-enable name.service
+
+        chkconfig命令对应关系
+            开机自启        chkconfig name on       systemctl enable name.service
+            禁止自启        chkconfig name off      systemctl disable name.service
+            所有服务开机自启状态
+                chkconfig --list    systemctl list-unit-files --type service
+            查看服务依赖关系
+                systemctl list-dependencies name.service
+
+        target unit
+            unit配置文件 .target
+
+            运行级别
+            0       runlevel0.target        poweroff.target
+            1       runlevel1.target        rescue.target
+            2       runlevel2.target        multi-user.target
+            3       runlevel3.target        multi-user.target
+            4       runlevel4.target        multi-user.target
+            5       runlevel5.target        graphical.target
+            6       runlevel6.target        reboot.target
+
+            级别切换
+                init N    systemctl isolate name.target
+
+            查看级别
+                runlevel    systemctl list-unit --type target
+
+            获取默认运行级别
+                /etc/inittab        systemctl getdefault
+
+            修改默认运行级别
+                /etc/inittab        systemctl setdefault name.target
+
+            切换至紧急救援模式
+                systemctl rescue
+            切换至emergency模式
+                systemctl emergency
+            其它常用命令
+                关机  systemctl halt   systemctl poweroff
+                重启  systemctl reboot
+                挂起  systemctl suspend
+                快照  systemctl hibernate
+                快照并挂起  systemctl hybrid-sleep
+
+        
 
 
 
-echo '/etc/sysconfig/network/' | sed  's/.*\/\([^/]\+\/\?$\)/\1/g' | cut -d"/" -f1
-echo '/etc/sysconfig/network/' | sed -r 's/.*\/([^/]+\/?$)/\1/g' | cut -d"/" -f1
-echo '/etc/sysconfig/network' | sed -r 's@.*/([^/]+/?$)@\1@g' | cut -d"/" -f1
 
 
-echo '/etc/sysconfig/network' | sed 's@[^/]\{1,\}/\?$@@'
-echo '/etc/sysconfig/network' | sed -r 's@[^/]{1,}/?$@@'
+
+
+
+
+
+
+
+
+
 
 
 
