@@ -2565,7 +2565,330 @@ systemd
                 快照  systemctl hibernate
                 快照并挂起  systemctl hybrid-sleep
 
+bash脚本编辑
+    数组：存储多个元素的连续内存空间
+    娄组名
+    索引，编号从0开始，数值索引，也支持稀疏格式，
+    引用数组中的元素：${ARRAY_NAME[INDEX]}
+    声明数组
+        declare -a ARRAY_NAME
+        declare -A ARRAY_NAME
+
+    数组元素的赋值
+        1. 一次只赋值一个元素
+            ARRAY_NAME[INDEX]=VALUE
+            weekdays[0]='sunday'
+            weekdays[4]='thursday'
+        2. 一次赋值多个元素
+            ARRAY_NAME=('VAL1' 'VAL2' ...)
+        3. 只赋值特定元素
+            ARRAY_NAME=([0]='VAL1' [3]='VAL2' ...)
+        4. 从标准输入读取
+            read -a ARRAY
+    
+    引用数组元素
+        ${ARRAY_NAME[INDEX]}
+        当下标INDEX省略时，引用下标为 0 的元素
+
+    引用数组长度
+        ${#ARRAY_NAME[*]}  ${#ARRAY_NAME[@]}
+    
+    示例：生成10个随机数，并找出其最大值
+
+    将/var/log/*.log的所有文件的文件名保存到一个数组中
+        declare -a files
+        files=(/var/log/*.log)
+
+    引用数组中的所有元素
+        所有元素
+            ${ARRAY_NAME[*]}  ${ARRAY_NAME[@]}
+        数组切片
+            ${ARRAY_NAME[@]:offset:number}
+                offset：要跳过的元素个数，或者是开始的数组下标
+                number：要切片取出的元素个数
+                如果 number 省略，则取得偏移量后的所有元素
+                    ${ARRAY_NAME[@]:offset}
+    
+    向数组中增加元素
+        $[${#ARRAY_NAME[@]}]=VALUE
+    
+    删除数组中的某元素
+        unset ARRAY[INDEX]
+    
+    关联数组
+        declare -A ARRAY_NAME
+        ARRAY_NAME=([index_name1]='val1' [index_name2]='val2' ...)
+
+    bash字符串处理工具
+        字符串切片
+            ${var:offset:number}
+        取字符串的最右侧几个字符
+            ${var: -length}     冒号后面必须有个空白字符，例如，${var: -3}，取最右边的3个字符
         
+        基于模式取子串
+            ${var#*word}，其中word可以是指定的任意字符
+            功能：从左到右，查找var变量所存储的字符串中第一次出现的word，删除字符串从开头至第一次出现word字符之间，包括word本身的所有字符
+
+            ${var##*word}，其中word可以是指定的任意字符
+            功能：从左到右，查找var变量所存储的字符串中最后一次出现的word，删除字符串从开头至最后一次出现word字符之间，包括word本身的所有字符
+
+            ${var:%word*} 
+            功能：从右到左，查找var变量所存储的字符串中第一次出现的word，删除字符串从结尾至第一次出现word字符之间，包括word本身的所有字符
+               
+            ${var:%%word*} 
+            功能：从右到左，查找var变量所存储的字符串中最后一次出现的word，删除字符串从结尾至最后一次出现word字符之间，包括word本身的所有字符
+
+            file_path='/var/log/messages'
+            ${file_path##*/}    messages
+            ${file_path%/*}     /var/log
+
+            示例：url='http://www.lsu.edu.cn:80'
+                ${url##*:}      80
+                ${url%%:*}      http
+
+        查找替换
+            ${var/pattern/substi}：查找var所表示字符串中第一次被pattern所匹配到的字符串，以substi替换之
+            ${var//pattern/substi}：查找var所表示字符串中所有被pattern所匹配到的字符串，以substi替换之  
+
+            ${var/#pattern/substi}：查找var所表示字符串中行首被pattern所匹配到的字符串，以substi替换之   
+            ${var/%pattern/substi}：查找var所表示字符串中行尾被pattern所匹配到的字符串，以substi替换之         
+
+        查找删除
+            ${var/pattern}：查找到第一次，删除
+            ${var//pattern}：查找到所有，删除
+            ${var/#pattern}：查找到行首，删除
+            ${var/%pattern}：查找到行尾，删除
+
+        字符大小写转换
+            ${var^^}  把var中所有小写转大写
+            ${var,,}  把var中所有大写转小写
+
+        变量赋值
+            ${var:-value}，如果var为空或未设置，返回value，否则返回var的值，但不会给var赋值
+            ${var:=value}，如果var为空或未设置，将value赋值给var，并返回value，否则返回var的值
+            ${var:+value}，如果var不空，返回value
+            ${var:?error_info}，如果var为空或未设置，返回error_info(错误信息流)，否则返回var的值
+
+    为脚本使用配置文件
+
+        #!/bin/bash
+        #
+
+        [ -r /tmp/host ] && . /tem/host
+        HOSTNAME=${HOSTNAME:-www.lsu.edu.cn}
+        hostname ${HOSTNAME}
+
+        1. 定义文本文件，每行定义“name=value”
+        2. 在脚本中source此文件即呆
+
+    命令
+        mktemp命令
+        mktemp [OPTION]... [TEMPLATE]
+            TEMPLATE: filename.xxx
+            x至少三次
+
+            option
+                -d：创建临时目录
+                --tmpdir=/PATH/TO/TEMPDIR
+                -p /PATH/TO/TEMPDIR         指定临时目录位置
+
+        install命令
+            install [OPTION]... [-T] SOURCE DEST
+            install [OPTION]... SOURCE... DIRECTORY
+            install [OPTION]... -t DIRECTORY SOURCE...
+            install [OPTION]... -d DIRECTORY...
+
+            选项
+                -m MODE
+                -o OWNER 
+                -g GROUP
+                -d 生成空目录
+
+gawk
+    awk：报告生成器，格式化文本输出
+        Aho  weinberger  Kernighan
+
+    脚本语言解释器
+    基本语法
+        gawk [ POSIX or GNU style options ] -f program-file [ -- ] file ...
+        gawk [ POSIX or GNU style options ] [ -- ] program-text file ... 
+        
+        program  PATTERN {ACTION STATEMENT}
+            语句之间用分号分隔
+        选项：
+            -F  指明输入时用到的字段分隔符
+            -v var=value  自定义变量
+        
+        1. print
+            print item1, item2, ...  逗号本身不显示，表示输出多个字段，字段之间的默认分隔符是空白字符
+            要点：
+                (1)逗号分隔符
+                (2)输出的item可以是出字符串，也可以是数值：当前记录的字段，变量或awk的表达式
+                (3)如果省略item，相当于print $0，即输出当前记录本身
+        
+        2. 变量
+            2.1 内建变量
+                FS：input field sperator，默认为空白符
+                OFS：output field sperator，默认为空白符
+                RS：input record seperator，输入时的换行符
+                ORS：oupt record seperator，输出时的换行符
+                NF：number of field，字段数量
+                NR：number of record，文件的行数
+                    {print NF}  {print $NF}的区别
+                FNR：各文件分别计数
+                FILENAME：文件名
+                ARGC：命令行参数的个数
+                ARGV：数组，保存的是命令行所给定的各参数
+
+            2.2 自定义变量
+                (1)var=value   变量名区分大小写
+                (2)在program中直接定义
+                    awk 'BEGIN {test="hello, awk";print test}
+        3. printf命令
+            格式化输出：printf FORMAT, item1, item2, ...
+            (1)FORMAT是必须给出
+            (2)不会自动换行，需显式给出换行符，\n
+            (3)FORMAT需要给后面的每个item指定一个格式符
+                格式符
+                    %c 字符
+                    %d, %i  十进制整数
+                    %e, %E  科学计数法表示
+                    %f  浮点数
+                    %g, %G  科学计数法或浮点数
+                    %s  字符串
+                    %u 无符号整数
+                    %%  %本身
+
+                修饰符
+                    #[.#]  第一个数字控制显示宽度，第二个数表示小数精度  如 %3.1f
+                    -  左对齐
+                    +  显示数值符号
+
+        4. 操作符
+            x+y x-y x*y x/y x^y x%y
+            -x
+            +x  转换为数值
+            
+            字符串操作符：没有符号的操作符，字符串连接
+            
+            赋值操作符
+                = += -+ *= /+ %= ^=
+                ++ --
+            比较操作符
+                > >= < <= != ==
+            
+            模式匹配
+                ~  是否匹配
+                !~  是否不匹配
+
+            逻辑操作符
+                && || !
+
+            函数调用
+                function_nane(arg1, arg2, arg3, ...)
+
+            条件表达式
+                selector?if-true-statement:if-false-statement
+
+        5. PATTERN
+            (1)empty，空模式，匹配每一行
+            (2)/regular expression/  仅处理能被模式匹配的行  !/regular expression/  对模式取反
+            (3)relational expression  关系表达式，结果有“真”有“假”，结果为“真”，才会被处理
+                真：结果非 0 值，非空字符串
+                awk -F: '$3>=1000{print $1,$3}' /etc/passwd
+                awk -F: '$NF ~ /bash$/ {print $1,$NF}' /etc/passwd
+                df -h | awk -F% '/^\/dev/{print $1}' | awk '$NF>20{print $1,$NF}'
+                awk 'if{(NF>5) print $0}' /etc/fstab
+            (4)line range  行范围  
+                /pat1/, /pat2/
+                注意：不支持直接给出数字格式
+            (5)BEGIN END 模式
+                BEGIN{}  仅在开始处理文件中的文本之前执行一次
+                END{}  仅在文本处理完成，命令结束之前执行一次
+        
+        6. 常用的action
+            (1)expression
+            (2)control statement  if语句 while语句
+            (3)compound statement  组合语句
+            (4)input statement  输入语句
+            (5)output statement  输出语句
+
+        7. 控制语句
+            if (conditon) {statements}
+            if (conditon) {statements} else {statements}
+            while (conditon) {statements}
+            do {statements} while (condition)
+            for(expr1;expr2;expr3){statements}
+            break   continue    delete array[index]    delete array   exit 
+
+            7.1 if-else
+                语法  if (conditon) {statements} [else {statements}]
+                使用场景：对awk取得的整行或某个新字段做条件判断
+            
+            7.2 while循环
+                语法  while (conditon) {statements}
+                条件为真进入循环，条件为假退出循环
+                使用场景：对一行内多个字段逐一做类似处理时；对数组中的各元素逐一处理时
+                awk '/^[[space:]]*linux16/{i=1;while(i<=NF){print $i, length($i);i++}}' /etc/grub2.cfg
+                length()  返回字符串的长度
+
+            7.3 do-while循环
+                语法  do {statements} while (condition)
+                意义：至少执行一次循环体
+
+            7.4 for循环
+                语法  for(expr1;expr2;expr3){statements}
+                for(variable assignment; condition; iteration process) {for body}
+                awk '/^[[:space:]]*linux16/{for(i=1;i<=NF;i++){print $i, length($i)}}'
+                特殊用法
+                    能遍历数组元素
+                    语法：for (index in array) {for-body}
+
+            7.5 swicth语句
+                语法：switch(expression) {case varlue1 OR /REGUXP1/:statements; case varlue2 OR /REGUXP2/:statements; ... default:statements}
+
+            7.6 break和continue
+            
+            7.7 next
+                提前结束对本行的处理而直接进入下一行
+                awk -F: '{if ($3%2!=0) next; print $1, $3}' /etc/passwd
+
+        8. 关联数组  array[index_expression]
+            index_expression
+            (1)可以使用任意字符，字符串要用双引号
+            (2)如果某数组元素事先不存在，在引用时，awk会自动创建此元素，并将其值初始化为空串
+               若要判断数组存在某元素，要使用 "index in array" 格式
+
+            awk 'BEGIN{weekdays["mon"]="Monday";weekdays["tue"]="Tuesday";for(index in weekdays){print weekdays[index]}}'
+            netstat -tan | awk '/^tcp\>/ {state[$NF]++}END{for(s in state){print s, state[s]}}'
+            akw '{ip[$1]++}END{for i in ip{print i, ip[i]}}' /var/log/access_log
+
+        9. 函数
+            9.1 内置函数
+                数值处理
+                    rand()  返回一个0-1之间的随机数
+                字符串处理
+                    length()  返回字符串长度
+                    sub(r,s[,t])  以 r 所表示的模式查找 t 表示的字符串匹配的内容，并将第一次出现的用 s 替换
+                    gsub(r,s[,t])  同上，全局替换
+                    split(s,a,[,r])  以 r 为分隔符支切割字符串 s ，并将切割的结果保存到 a 表示的数组中
+                    netstat -tan | awk '/^tcp\>/{split($5,a,":");for(i in a){count[a[1]]++}}END{for(i in count){print i, count[i]}}'
+                
+    练习
+        1. 统计/etc/fstab文件中每个单词出现的次数
+            awk '{for(i=1;i<=NF;i++){count[$i]++}} END{for(word in count){print word, count[word]}}' /etc/fstab
+        2. 统计/etc/fstab文件中文件系统出现的次数
+            awk '/^\/dev|^UUID/{count[$1]++}END{for(i in count){print i,count[i]}}' /etc/fstab
+    《sed和awk》  《linux命令和脚本编程指南》
+
+
+
+
+
+
+               
+
+
 
 
 
