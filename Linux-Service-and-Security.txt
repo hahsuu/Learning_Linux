@@ -734,7 +734,7 @@ OpenSSL
             3. 发证
                 (1)用到证书的主机生成证书请求
                     (umask 077; openssl genrsa -out /etc/httpd/ssl/httpd.key 2048)
-                    openssl req -new -key /etc/httpd/ssl/httpd.key -days 365 out /ect/httpd/ssl/httpd.csr
+                    openssl req -new -key /etc/httpd/ssl/httpd.key -days 365 -out /ect/httpd/ssl/httpd.csr
                 (2)把证书文件传递给CA
                 (3)CA签署证书，并将证书发给申请者
                     openssl ca -in /tmp/httpd.csr -out /etc/pki/CA/certs/httpd.crt -days 365
