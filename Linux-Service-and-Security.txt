@@ -755,7 +755,915 @@ OpenSSL
             查看crl文件
                 openssl crl -in /PATH/FROM/CRL_FILE.crl -noout -text
 
+
+Web Service
+    传输层，提供进程地址
+    Port Number 0-65535
+    tcp  传输控制协议，面向连接协议，通信之前需要建立虚拟链路，，结束后拆除链路
+    udp  User Datagram Protocol，无连接协议
+    套接字  IPC的一种实现，允许位于不同主机(甚至同一主机)上的不同进程之间进行通信(数据交换)，Socket API  1983 BSD  4.2
+    SOCK_STREAM
+    SOCK_DGRAM
+    SOCK_UNIX
+
+    0-1023，特权端口，众所周知，永久分配给固定的应用使用，22/tcpssh)  80/tcp(http)  443/tcp(https)
+    1024-41951，亦为注册端口，但要求不是特别严格，分配给程序注册某应用使用，11211/tcp(memcached)  3306/tcp(mysql)
+    41952+，私有端口，客户端程序随机使用端口，动态端口，其范围的定义 /proc/sys/net/ipv4/ip_local_port_range
+
+    tcp协议的特性
+        建立连接，三次握手
+        将数据打包成段，校验和(CRC-32)
+        确认，重传以及超时
+        排序，逻辑序号
+        流量控制，滑动窗口算法
+        拥塞控制，慢启动和拥塞避免算法
+
+    Socket Domain  根据其使用地址
+        AF_INET: Address Family  IPv4
+        AF_INET6: IPV6
+        AF_UNIX: 同一主机上不同的进程进行通信时使用，每类套接字至少都提供了两种socket，流  数据报
+
+        流：可靠地传递，面向连接，无报文边界
+        数据报：不可靠传递，有边界，无连接
+
+    套接字相关的系统调用
+        socket()  创建一个套接字
+        bind()  绑定
+        listen()  监听
+        accept()  接受请求
+        connect()  请求连接建立
+        write()  发送数据
+        read()  接收
+        
+    http：Hyper Text transfer Protocol，超文本传输协议
+    HTML，超文本标记语言
+    http协议版本
+        HTTP/0.9  原型版本，功能简陋
+        HTTP/1.0  第一个广泛使用的版本，支持MIME
+        HTTP/1.1  增强了缓存功能
+        HTTP/2.0
+
+    一次完整的http请求
+        1. 建立或处理连接
+        2. 接收请求：接收来自于网络的请求报文对某资源的一次请求过程
+        3. 处理请求：对报文进行解析，获取请求的方法和资源
+            请求报文的首部，元数据
+                <method> <URL> <VERSION>
+                Host: www.lsu.edu.cn  请求主机名称
+                Connection
+        4. 访问资源：获取请求报文中请求的资源，DocRoot
+            Web服务器资源路径方式
+                docroot
+                alias
+                虚拟主机docroot
+                用名家目录docroot
+        5. 构建响应报文
+            资源的MIME
+                显式分类  魔法分类  协商分类
+            URL重定向
+                web服务器构建响应并非客户请求的资源，而是资源的另一个访问路径
+        6. 发送响应报文
+        7. 记录日志
+
+    http服务器程序
+        httpd(apache)
+        nginx
+        lighttpd
+    应用程序服务器
+        IIS
+        tomcat jetty  jboss reisn
+        webshpere weblogic oc4j
+
+    httpd的安装配置和使用
+        httpd：apache
+        A Patchy Server = Apache
+    
+    httpd的特性
+        高度模块化：core + modules
+        DSO：Dymanic Shared Object
+        MPM：Multipath Processing modules
+            prefork
+                多进程模型，每进程响应一个请求
+                一个主进程，负责生成n个子进程，子进程也叫工作进程，每个子进程处理一个用户请求，即使没有用户请求，也会预先生成若干空闲进程，随时等待请求到来，最大不超过1024个
+            worker
+                多进程多线程，一个进程生成多个线程，一个线程响应一个请求            
+            event
+                事件驱动模型，一个线程响应多个请求
+
+    httpd
+        CentOS 6 2.2
+        CentOS 7 2.4
+
+        安装方式
+            rpm包安装  编译安装
+            
+        CentOS 6 2.2
+            程序环境
+                配置文件：
+                    /etc/httpd/conf/httpd.conf
+                    /etc/httpd/conf.d/*.conf
+
+                服务脚本
+                    /etc/rc.d/init.d/httpd
+                    配置文件：/etc/sysconfig/httpd
+
+                主程序文件
+                    /usr/sbin/httpd
+                    /usr/sbin/httpd.event
+                    /usr/sbin/httpd.worker
+
+                日志文件目录
+                    /var/logs/httpd
+                        access_log  访问日志
+                        error_log  错误日志
+
+                站点文档目录
+                    /var/www/html
+
+            配置文件组成部分，分成3段
+                grep "Section" /etc/httpd/conf/httpd.conf
+                ### Section 1: Global Environment
+                ### Section 2: 'Main' server configuration
+                ### Section 3: Virtual Hosts
+
+            配置格式
+                directive  value
+                directive不区分大小写，value为路径是取决于文件系统是否区分大小写
+
+        常用配置
+            1. 修改监听的IP和端口
+                Listen [ip:]port        
+                ip省略时，表示监听本机上所有ip地址
+                Listen指令可应用多次
+
+            2. 持久连接
+                Persistent Connection：建立连接后，每个资源获取完成后，不会断开连接，而是等待其它请求完成
+                如何断开？
+                    数量限制：100
+                    时间限制：可配置
+
+                副作用：对并发访问量较大的服务器，持久连接会使得有些请求得不到响应
+                折衷方案：使用较短的持久连接  httpd 2.4 支持毫秒级
                 
+                KeepAlive On|Off
+                MaxKeepAliveRequests 100        多少个
+                KeepAliveTimeout 15             多少秒
+
+            3. MPM：Multipath Processing module  多道处理模块
+                prefork worker event
+                httpd 2.2不支持同时支持编译多个模块，编译时只能选一个。rpm包提供了有一个二进制文件，分别应对不同的pmp方式，确认文法  ps aux | grep httpd
+
+                查看静态编译模块
+                    httpd -l
+                    apachectl -l
+                
+                查看静态编译及动态装载模块
+                    httpd -M  <==> httpd -t -D
+                    apachectl -M
+
+                更换使用httpd程序，将/etc/sysconfig/httpd文件中的行的注释删除，重新启动服务即可
+                    HTTPD=/usr/sbin/httpd.worker
+
+                prefork配置
+                    StartServers       8        ;默认启动进程数
+                    MinSpareServers    5        ;最小空闲进程数
+                    MaxSpareServers   20        ;最多空闲进程数
+                    ServerLimit      256        ;服务器启动的最大进程数
+                    MaxClients       256        ;最大并发连接数
+                    MaxRequestsPerChild  4000   ;每个服务器子进程能够处理的请求数，超过之后，会被父进程终止
+
+                worker配置
+                    StartServers         4      ;默认启动进程数
+                    MaxClients         300      ;最大并发连接数
+                    MinSpareThreads     25      ;最小空闲线程数
+                    MaxSpareThreads     75      ;最多空间线程数
+                    ThreadsPerChild     25      ;每子进程生成线程数
+                    MaxRequestsPerChild  0      ;0，表示没有限制，不会被父进程终止
+
+            4. DSO
+            配置指令实现模块加载
+                LoadModule <module_name> <mod_path>
+                模块路径可使用相对路径
+                相对于ServertRoot(/etc/httpd)指向路径而言，模块文件的真实路径，/usr/lib64/httpd/modules/，会在ServerRoot下创建一个符号链接，modules -> ../../usr/lib64/httpd/modules
+
+            5. 定义"Main" Server的文档页面路径             
+                DocumentRoot
+                文件路径映射
+                DocumentRoot指向的路径为URL路径的起始位置
+                DocumentRoot "/var/www/html"
+                test/index.html -> http://HOST:PORT/test/index.html
+
+            6. 站点访问控制
+                可基于两种类型
+                文件系统路径
+                    <Directory ""> </Directory>
+                    <File ""> </File>
+                    <FileMatch ""> </FileMatch>
+                URL路径
+                    <Location ""> </Location>
+                    <LocationMatch ""> </LocationMatch>
+                访问控制机制
+                    基于来源地址
+                    基于账号
+
+            7. Directory中基于来源地址实现访问控制
+                (1)options
+                    所有可用特性：Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
+                    None，表示全部不启用，All，表示全部启用
+                    Indexes  索引
+                    FollowSymLinks  允许跟踪符号链接文件
+                (2)基于来源地址的访问控制
+                    order  检查次序  后一项是默认
+                    order allow,deny  白名单
+                    order deny,allow  黑名单
+
+                    Allow from
+                    Deny from
+                    来源地址：
+                        IP
+                        NetAddr  172.17 172.16.0.0 172.16.0.0/16 172.16.0.0./255.255.0.0
+
+            8. 定义默认主页
+                DirectoryIndex index.html index.html.var
+
+            9. 日志设定
+                错误日志
+                    ErrorLog  logs/error_log
+                    LogLevel warn
+                        debug info notice warn error crit alert emerg
+
+                访问日志
+                    CustomLog  logs/access_log combined
+
+                    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+                    LogFormat "%h %l %u %t \"%r\" %>s %b" common
+                    LogFormat "%{Referer}i -> %U" referer
+                    LogFormat "%{User-agent}i" agent 
+
+                    %h  客户端IP地址
+                    %l  Remote Logname    - 表示为空
+                    %u  Remote User   - 表示为空
+                    %t  服务器收到请求的时间
+                    %r  请求报文的首行信息
+                    %>s 响应状态码
+                    %b  响应报文的大小，单位是字节，不包报文首部
+                    %{Referer}i  请求报文中"Referer"首部的值，当前资源的访问来源，即从哪个页面的链接跳转而来，- 表示直接访问
+                    %{User-Agent}i  请求报文中，"User-Agent"首部的值，即发生请求用到的应用程序
+            
+            10. 路径别名
+                DocumentRoot "/www/htdocs"
+                http://www.lsu.edu.cn/download/bash-4.1.2-48.el6.x86_64.rpm
+                -> /www/htdocs/download/bash-4.1.2-48.el6.x86_64.rpm
+                Alias /URL/ "/PATH/TO/SOMEDIR/"，如：
+                Alias /bbs/ "/forum/htdocs/"
+                http://www.lsu.edu.cn/bbs/index.html
+                -> /forum/htdocs/index.html
+
+            11. 设定默认字符集
+                AddDefaultCharset UTF-8
+
+            12. 基于用户的访问控制
+                认证质询
+                    www-authenticate，响应码为401,拒绝客户端请求，并说明要求客户提供账号和密码
+                认证
+                    Authorization，输入用户名密码后，再次发出送请求，认证通过后，则服务器发送响应资源
+                    认证方法
+                        basci   明文
+                        digest  消息摘要
+
+                安全域：需要用户认证之后方能访问的路径，应通过名称对其进行标识，并用于告知用户原因
+
+                用户的账号密码存储位置
+                    虚拟账号，仅用于访问某服务用到的认证标识，可以存储在
+                        文本文件
+                        SQL数据库
+                        ldap
+                        nis
+                basic认证
+                    (1)定义安全域
+                        <Directory "">
+                            options none
+                            AllowOverride none
+                            AuthType Basic
+                            AuthNmae "STRING"
+                            AuthUserFile "/PATH/TO/HTTPD_USER_PASSWD_FILE"
+                            Require user username1 username2
+                        </Directory>
+                        允许账号文件所有用户登录
+                            Require Valid-user
+                    (2)提供账号和密码存储
+                        使用htpasswd
+                        htpasswd [options] passwdfile username
+                            -c  自动创建 passwdfile，第一次添加用户时使用
+                            -m  md5加密密码
+                            -s  sha1加密密码
+                            -D  删除指定用户
+                            htpasswd -c -m /etc/httpd/conf.d/.htpasswd tom
+                    (3)实现基于组进行认证
+                        <Directory "">
+                            options none
+                            AllowOverride none
+                            AuthType Basic
+                            AuthNmae "STRING"
+                            AuthUserFile "/PATH/TO/HTTPD_USER_PASSWD_FILE"
+                            AuthGroupFile "/PAHT/TO/HTTPD_GROUP_FILE"
+                            Require group group1 group2
+                        </Directory>
+                        要提供用户账号文件和组文件
+                            组文件：每行定义一个组
+                                GRP_NAME: user1 user2 ...
+            
+            13. 虚拟主机
+                有三种方式实现方案
+                    基于IP：为每个主机至少准备一个ip地址
+                    基于Port：至少为每个虚拟主机准备一个专用端口(很少用)
+                    基于hostname：为每个虚拟主机至少准备一个hostname
+                可能会滥用上述三种中的任意方式
+                注意：虚拟主机与中心主机不要混用，禁用中心主机，注释 DocumentRoot
+                每个虚拟主机都有专用配置
+
+                    <VirtualHost "ip:port">
+                        servername
+                        DocumentRoot ""
+                    </VirtualHost>
+                        ServerAlias
+                        ErrorLog
+                        CustomLog
+                        <Directory ""></Directory>
+
+                    示例1：  基于ip
+                        <VirtualHost 172.168.100.6:80>
+                            ServerName web1.magedu.com
+                            DocumentRoot "/vhosts/web1/htdocs"
+                        </VirtualHost>
+
+                        <VirtualHost 172.168.100.7:80>
+                            ServerName web2.magedu.com
+                            DocumentRoot "/vhosts/web2/htdocs"
+                        </VirtualHost>
+
+
+                    示例2：  基于端口
+
+                        <VirtualHost 192.168.112.4:80>
+                            ServerName web1.lsu.edu.cn
+                            DocumentRoot "/vhosts/web1/htdocs"
+                        </virtualHost>
+                        <VirtualHost 192.168.112.5:80>
+                            ServerName web2.lsu.edu.cn
+                            DocumentRoot "/vhosts/web2/htdocs"
+                        </virtualHost>
+                        <VirtualHost 192.168.112.5:8080>
+                            ServerName web3.lsu.edu.cn
+                            DocumentRoot "/vhosts/web3/htdocs"
+                        </virtualHost>       
+                    
+                    示例3： 基于主机名    NameVirtualHost 192.168.112.4:80   NameVirtualHost与VirtalHost要一致
+
+                    <VirtualHost 192.168.112.4:80>
+                        ServerName web1.lsu.edu.cn
+                        DocumentRoot "/vhosts/web1/htdocs"
+                    </virtualHost>
+                    <VirtualHost 192.168.112.4:80>
+                        ServerName web2.lsu.edu.cn
+                        DocumentRoot "/vhosts/web2/htdocs"
+                    </virtualHost>
+                    <VirtualHost 192.168.112.4:80>
+                        ServerName web3.lsu.edu.cn
+                        DocumentRoot "/vhosts/web3/htdocs"
+                    </virtualHost>     
+
+            14. 内置的Status页面
+                httpd内嵌有handler，其中有一个handler用于输出当前httpd服务相关状态信息
+                    handler: server-status
+                    启用handler要使用SetHandler指令
+                        handler: 当文件被调用时，apache内部表示形式；一般每种文件类型都有其隐式处理器
+
+                        <Location /server-status>
+                            SetHandler server-status
+                            Order deny,allow
+                            Deny from all
+                            Allow from 172.16
+                        </Location>
+
+            15. curl命令
+
+                curl是基于URL语法在命令行方式下工作的文件传输工具，它支持FTP, FTPS, HTTP, HTTPS, GOPHER, TELNET, DICT, FILE及LDAP等协议。curl支持HTTPS认证，并且支持HTTP的POST、PUT等方法， FTP上传， kerberos认证，HTTP上传，代理服务器， cookies， 用户名/密码认证， 下载文件断点续传，上载文件断点续传,，http代理服务器管道（ proxy tunneling）， 甚至它还支持IPv6， socks5代理服务器,，通过http代理服务器上传文件到FTP服务器等等，功能十分强大。
+
+                curl的常用选项：
+
+                    -A/--user-agent <string> 设置用户代理发送给服务器
+                    -basic 使用HTTP基本认证
+                    --tcp-nodelay 使用TCP_NODELAY选项
+                    -e/--referer <URL> 来源网址
+                    --cacert <file> CA证书 (SSL)
+                    --compressed 要求返回是压缩的格式
+                    -H/--header <line>自定义头信息传递给服务器
+                    -I/--head 只显示响应报文首部信息
+                    --limit-rate <rate> 设置传输速度
+                    -u/--user <user[:password]>设置服务器的用户和密码
+                    -0/--http1.0 使用HTTP 1.0
+
+
+            16. 使用mod_deflate模块压缩页面优化传输速度
+
+                SetOutputFilter DEFLATE
+
+                # mod_deflate configuration
+                        
+                        
+                # Restrict compression to these MIME types
+                AddOutputFilterByType DEFLATE text/plain 
+                AddOutputFilterByType DEFLATE text/html
+                AddOutputFilterByType DEFLATE application/xhtml+xml
+                AddOutputFilterByType DEFLATE text/xml
+                AddOutputFilterByType DEFLATE application/xml
+                AddOutputFilterByType DEFLATE application/x-javascript
+                AddOutputFilterByType DEFLATE text/javascript
+                AddOutputFilterByType DEFLATE text/css
+            
+                # Level of compression (Highest 9 - Lowest 1)
+                DeflateCompressionLevel 9
+                
+                # Netscape 4.x has some problems.
+                BrowserMatch ^Mozilla/4 gzip-only-text/html
+                
+                # Netscape 4.06-4.08 have some more problems
+                BrowserMatch ^Mozilla/4\.0[678] no-gzip
+                
+                # MSIE masquerades as Netscape, but it is fine
+                BrowserMatch \bMSI[E] !no-gzip !gzip-only-text/html
+            
+            17. https，基于ip地址，仅可以使用一个https虚拟主机
+
+        URL:Uniform Resource Locator
+            URL方案 scheme
+            服务器地址  ip:port
+            资源路径
+            基本语法
+            <scheme>://<user:password>@<host>:<port>/<path>:<params>?<query>#<frag>
+                frag：锚点
+
+        http事务
+            请求：request
+            响应：response
+            报文语法格式：
+                request报文
+                    <method> <request-URL> <version>
+                    <headers>
+
+
+                    <entity body>
+
+                response报文
+                    <version> <status> <response-phrase>
+
+
+                    <entity-body>
+
+            method：请求方法，标明客户端希望服务器对资源执行的动作
+                GET：从服务器获取一个资源
+                HEAD：只从服务器获取文档首部
+                POST：向服务器发送要处理的数据
+                PUT：将请求的主体部分存储服务器上
+                DELETE：请求删除服务器上指定的文档
+                TRACE：追踪请求到达服务器中间经过的代理服务器
+                OPTIONS：请求服务器返回对指定资源支持使用的方法
+
+                Version：HTTP/<major>.<minor>
+                status:
+                    三位数字，如：200 301 404 502
+                    标记请求响应处理过程中发生的情况
+
+                reason-phrase(原因短语)
+                    状态码所标记状态的简写描述
+
+                headers：
+                    每个请求或响应报文可包含任意个首部，每个首部都有首部名称，后面跟一个冒号，而后跟一个可选空格，接着是一个值
+                entity-body：请求时附加的数据或响应时附加的数据
+
+            协议查看或分析工具
+                tcpdump tshark wireshark
+
+            status(状态码)
+                1xx  100 - 101，信息提示
+                2xx  200 - 206，成功类的响应
+                3xx  300 - 305，重定向类
+                4xx  400 - 415，错误类信息，客户端错误
+                5xx  500 - 505，错误类信息，服务器端错误
+
+                常用的状态码
+                    200 成功，请求的所有数据通过响应报文entity-body部分发送，OK
+                    301 请求的URL指向的资源已被删除，但在响应报文中通过首部Location指明了资源现在所处的新位置，Moved Permanenty
+                    302 与301相似，但在响应报文中通过Location指明了资源现在所处的临时新位置，Found
+                    304 客户端发出了条件式请求，但服务器上的资源未曾发生变化，则响应此状态码，Not Modified
+                    401 需要输入账号和密码方能访问资源，Unauthorized
+                    403 请求被禁止，Forbidden
+                    404 服务器无法找到客户端请求的资源，Not Found
+                    500 服务器内部错误，Internal Server Error
+                    502 代理服务器从后端服务器收到一条伪响应，Bad Gateway
+
+            headers
+                格式  Name: Value
+                Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+                Accept-Encoding:gzip, deflate
+                Accept-Language:zh-CN,zh;q=0.8
+                Cache-Control:max-age=0
+                Connection:keep-alive
+
+                首部分类
+                    通用首部  请求首部  响应首部  实体首部  扩展首部
+
+                    通用首部
+                        Date  报文的创建时间
+                        Connection  连接方式(状态)，如 keep-alive  close
+                        Via  显示报文经过的中间节点
+                        Cache-Control  控制缓存
+                    
+                    请求首部
+                        Accept  通知服务器自己接受的媒体类型
+                        Accept-Charset  接受字符集
+                        Accept-Encoding  接受编码格式格式，如gzip
+                        Accept-Language  接受的语言
+                        Client-IP  客户端IP地址
+                        Host  请求的服务器名称和端口
+                        Referer  包含当前正在请求资源的上级资源
+                        User-Agent  客户端代理
+                        Except  
+                        If-Modified-Since  自从指定时间之后，请求的资源是否发生修改
+                        If-Unmodified-Since  自从指定时间之后，请求的资源是否未发生修改
+                        If-None-Match  本地缓存中存储的文档的ETag标签是否与服务器的ETag不匹配
+                        If-Match  本地缓存中存储的文档的ETag标签是否与服务器的ETag匹配
+
+                    安全请求首部
+                        Authorization  向服务器发送认证信息，如账号密码
+                        Cookie  客户端向服务器发送的Cookie
+                        Cookie2
+
+                    代理请求首部
+                        Proxy-Authorization  向代理服务器认证
+
+                    响应首部
+                        信息性
+                            Age  响应持续时长
+                            Server  服务器的软件名称与版本
+                        协商首部，其资源有多种表示方法时使用
+                            Accept-Ranges  服务器可授受的请求类型范围
+                            Vary  服务器查看的其它首部列表
+                        安全响应首部
+                            Set-Cookie  向客户端设置cookie
+                            Set-Cookie2
+                            WWW-Authenticate  来自服务器对客户端的质询认证表单
+                    
+                    实体首部
+                        Allow  列出对此实体可使用的请求方法
+                        Location  告诉客户端真正实体位于何处
+                        Content-Encoding  内容编码格式
+                        Content-Language  内容语言 
+                        Content-Length  内容长度
+                        Content-Range
+                        Content-Type  主体对象类型
+                        
+                        缓存相关
+                            ETag  实体扩展标签
+                            Expires 实体过期时间
+                            Last-MOdified  最后一次修改时间
+
+    httpd-2.4
+        新特性
+            1. MPM支持运行DSO机制，以模块按需加载
+            2. 支持Event MPM
+            3. 支持异步读写
+            4. 支持模块及每个目录分别使用各自日志级别
+            5. 每请求配置 <if>
+            6. 增强版表达式解析
+            7. 支持毫秒级keep alive timeout
+            8. 基于FQDN的虚拟主机，不再需要VirtualHost指令
+            9. 支持用户自定义变量
+
+        新模块
+            mod_proxy_fcgi
+            mod_ratelimit
+            mod_remoteip
+
+        修改了一些配置机制
+            不再支持Order，deny，allow
+        
+        安装httpd-2.4
+            CentOS 6 
+            依赖 apr apr-util [apr-icon]
+            apr  apache protable runtime 
+            
+            编译安装步骤
+                1.4+ 版apr和apr util
+
+                前提：安装开发环境，安装pcre-devel
+
+                (1) apr
+                    ./configure --prefix=/usr/local/apr
+                    make && make install
+        
+                (2) apr util
+                    ./configure --prefix=/usr/local/apr-util --with-apr=/usr/local/apr
+                    make && make install
+
+                (3) 添加apache组和用户
+                    groupadd -r apache
+                    useradd -r -g apache apache
+
+                    ./configure --prefix=/usr/local/apache --sysconfdir=/etc/httd24 --enable-so --enable-ssl --enable-cgi --enable-rewrite
+                    --with-zlib --with-pcre --with-apr=/sur/local/apr --with-apr-util=/usr/local/apr-util --enable-modules=most --enable-mpms-shared=all --with-mpm=prefork
+
+                    make && make install
+
+        CentOS 7
+            用rpm包安装
+            配置文件
+                主配置文件  /etc/httpd/conf/httpd.conf
+                模块配置文件  /etc/httd/conf.modules.d/*.conf
+                辅助配置文件  /etc/httpd/conf.d/*.conf
+
+                MPM以DSO机制提供，00_mpm.conf
+                服务控制  systemctl {start|stop|restart|status|...} httpd.service
+
+                基于ip访问控制
+                    Require ip IPADDR
+                    Require not ip IPADDR
+                    
+                    全部允许或拒绝
+                    Require all granted
+                    Require all deny
+
+                    默认情况下对目录的访问是拒绝，要做显式授权，要放置在 <RequireAll> 容器中
+
+                基于主机
+                    Require host HOSTNAME
+                    Require not host HOSTNAME
+
+LAMP
+    A apache
+    M mariadb mysql
+    P php perl python
+
+LAMMP  memcached
+
+    httpd + php
+        modules
+        cgi
+        fast cgi(fpm)
+
+    请求流程  client -> (http) -> httpd -> (cgi) -> application Server(program file) -> (mysql) -> mariadb
+
+    CentOS 7
+        程序包  httpd  php  php-mysql  mariadb-server
+
+        启动服务
+            systemctl start httpd
+            systemctl start mariadb
+
+    CentOS 6
+        程序包  httpd  php  php-mysql mysql
+  
+        启动服务
+            service httpd start
+            service mysql start
+
+    httpd + php
+        httpd prefork  libphp5.so
+        httpd worker event libphp5-zts.so
+
+        php配置文件
+            /etc/php.ini
+            /etc/php.d/*.ini
+            rpm -qi php-common
+            
+MariaDB(mysql)            
+    关系型数据库的一种开源实现
+    数据结构模型
+        层次模型  网状模型  关系模型(二维关系  row  column)
+    RDBMS
+        mysql mariadb percona-server
+        postgreSQL  pgsql  ->  EnterriseDB
+        Oracle
+        MsSQL
+
+    事务：多个操作当作一个整体对待
+        ACID
+            A：原子性
+            C：一致性
+            I：隔离性
+            D：持久性
+
+    SQL：Structure Query Language  结构化查询语言
+        
+    基本概念
+        约束：Constraint，向数据表提供数据要遵守的限制
+            主键：一个或多个字段组合，填入的数据必做能在本表中惟一标识本行记录，不能为空，Not NULL
+            惟一键：一个或多个字段组合，填入的数据必做能在本表中惟一标识本行记录，可以为空
+            外键：表中某字段可填入数据取决于另一张表主键已有的数据
+            检查性
+        
+        索引：将表中的一个或多个字段的数据复制一份另存，并且此些数据需要按特定次序排序存储
+        
+        关系运算
+            选择：挑选出符合条件的行(部分)
+            投影：挑选出需要的字段
+            连接：
+        
+        数据抽象
+            物理层：决定数据存储格式，即RDBMS在磁盘上如何组织文件
+            逻辑层：描述DB存储什么数据，以及数据间存在什么样的关系
+            视图层：描述DB中的部分数据
+
+        关系模型分类
+            实体-关系模型
+            基于对象关系模型
+            半结构化的关系模型
+
+    安装
+        源代码：编译安装
+        二进制格式的程序包，展开到特定路径，并简单配置即可使用
+        程序包管理器的程序包
+            rpm
+                OS Vendor
+                项目官方
+            deb
+
+    MariaDB的特性
+        插件式存储引擎：存储管理器，功能和特性均略有差别，用户根据需要灵活选择，存储引擎也称为“表类型”
+        更多的存储引擎
+            MyISAM -> Aria
+            InnoDB - > XtraDB
+        诸多扩展的新特性
+        较多测试组件
+        Truly Open Source
+
+        安装和使用MariaDB
+            CentOS 7 直接提供
+            CentOS 6
+                通用二进制安装过程
+                (1)准备数据目录，以/mydata/data为例
+                (2)配置MariaDB
+                    # groupadd -r mysql
+                    # useradd -r -g mysql mysql
+                    # tar xf mariadb.VERSION.tar.xz  -C  /usr/local
+                    # cd /usr/local
+                    # ln -sv mariadb.VERSION mysql
+                    # cd mysql
+                    # chown root:mysql -R ./*
+                    # scripts/mysql-install-db --datadir=/mydata/data  --user=mysql
+                    # cp support-files/mysql.server /etc/rc.d/init.d/mysqld (要做一些修改)
+                    # chkconfig --add mysqld
+                (3)准备配置文件
+                    配置文件格式 类ini格式，通过单个文件为各程序提供配置
+                    配置文件查找次序
+                        /etc/my.cnf -> /etc/mysql/my.cnf -> --default-extra-file=/PATH/TO/CONF-FILE -> ~/.my.cnf
+                        /etc/mysql目录可能需要自己创建
+
+                    # cp support-files/my-large.cn /etc/mysql/my.cnf
+                        添加三个选项
+                            datadir=/mydata/data
+                            innodb_file_per_table=on
+                            skip_name_resolv=on
+
+    MariabDB的程序组成
+        Client
+            mysql：ClI交互式客户端程序
+            mysqldump  mysqladmin
+
+        Server
+            mysqld_safe  mysqld  mysqld_milti
+
+        服务器监听的两种socket地址
+            ip socket：监听在tcp的3306端口，支持远程通信
+            unix socket：监听在socket文件上(/tmp/mysql.sock，/var/lib/mysql/mysql.sock)，仅支持本地通信
+
+        命令行交互式客户端程序：；mysql
+            -uUSERNAME  用户名 默认为root
+            -hHOST 服务器主机  默认为localhost
+            -pPASSWORD 用户密码  默认为空
+
+            注意：mysql账号由两部分组成，'USERNAME'@'HOST'，其中 HOST 用于限制用户可通过哪些主机连接mysql服务器
+            %：匹配任意长度的任意字符，如 172.16.%.%
+            _：匹配单个字符
+
+    命令
+        客户端命令：本地执行
+            mysql> help
+            每个命令都有两种方式，如 status   \s
+        
+        服务器端命令：通过mysql协议发往服务器执行并返回结果
+            每个命令都有结束符，默认为分号
+    
+    关系型数据库常见组件
+        数据库：database
+        表：table
+            行：row  列：column
+        索引：index
+        视图：view
+        用户：user
+        权限：privilege
+        存储过程：procedure
+        存储函数：function
+        触发器：trigger
+        事件调度器：event scheduler
+
+    SQL语句
+        DDL：Data Defination Language
+            CREATE DROP ALTER
+        DML：Data Manipulation Language
+            INSERT DELETE UPDATE SELECT 
+            GRANT REVOKE
+        
+        数据库
+            CREATE DATABASE|SCHEMA 'db_name';
+            DROP DATABASE|SCHEMA 'db_name';
+
+            SHOW CHARACTER SET;  显示可用字符集
+            SHOW COLLATION;  显示排序类型
+
+        表
+            CREATE TABLE tb_name (col1 datatyp 修饰符, col2 datatyp 修饰符, ...) ENGINE='InnoDB';
+            查看引擎  SHOW ENGINES
+            查看表  SHOW TABLES
+            查看表结构 DESC[DBNAME.]TABLE_NAME
+            删除表 DROP TABLE [IF EXIST] tb_name
+
+    数据类型
+        数值型
+            精确数值型  整数  十进制
+            近似浮点型
+                单精度  float
+                双精度  double
+
+            整型 int
+                tinyint  1
+                smallint  2
+                midiumint  3
+                int  4
+                bigint  8
+
+        字符型
+            定长字符型
+                CHAR(#)  不区分大小写
+                BINARY(#) 区分大小写
+            变长字符型
+                VARCHAR(#)  不区分大小写
+                VARBINARY(#)  区分大小写
+
+        对象存储
+            TEXT  不区分大小写
+            BLOB  区分大小写
+
+        内置类型
+            ENUM
+            SET
+
+        修饰符 
+            NOT NULL  非空
+            DEFAULT value   默认值
+
+    博客作业：CentOS 7 LAMP
+    练习
+        1. vhost1 pma.stux.com  phpMyAdmin，同时提供https
+        2. vhost2 wp.stus.com  wordpress
+        3. vhost3 dz.stux.com  Discuz        
+
+
+
+
+
+            
+
+
+
+
+
+
+
+
+
+                 
+                
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+
 
 
 
