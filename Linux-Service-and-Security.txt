@@ -1587,7 +1587,7 @@ MariaDB(mysql)
             查看引擎  SHOW ENGINES
             查看表  SHOW TABLES
             查看表结构 DESC[DBNAME.]TABLE_NAME
-            删除表 DROP TABLE [IF EXIST] tb_name
+            删除表 DROP TABLE [IF EXISTS] tb_name
 
     数据类型
         数值型
@@ -1599,7 +1599,7 @@ MariaDB(mysql)
             整型 int
                 tinyint  1
                 smallint  2
-                midiumint  3
+                mediumint  3
                 int  4
                 bigint  8
 
@@ -1615,6 +1615,13 @@ MariaDB(mysql)
             TEXT  不区分大小写
             BLOB  区分大小写
 
+        日期时间型
+            DATE  日期
+            TIME  时间
+            DATATIME  日期时间
+            TIMESTAMP  时间戳
+            YEAR  年份
+
         内置类型
             ENUM
             SET
@@ -1622,12 +1629,485 @@ MariaDB(mysql)
         修饰符 
             NOT NULL  非空
             DEFAULT value   默认值
+            PRIMARY KEY
+            UNIQUE KEY
+
+            UNSIGNED
+            AUTO_INCREMENT
 
     博客作业：CentOS 7 LAMP
     练习
         1. vhost1 pma.stux.com  phpMyAdmin，同时提供https
         2. vhost2 wp.stus.com  wordpress
-        3. vhost3 dz.stux.com  Discuz        
+        3. vhost3 dz.stux.com  Discuz      
+
+数据基础应用
+    表
+        CREATE TABLE [IF NOT EXISTS] 'tbl_name' (col1 type1, con2 type2, ...)
+        col1 type1
+        PRIMARY KEY(col1, col2, ...)
+        INDEX(col1, col2, ...)
+        UNIQUE(col1, col2, ...)
+
+        表选项
+            ENGINE[=]engine_name
+            ROW_FORMAT[=]{DEFAULT|....}
+
+        获取帮助
+            help create table
+        查看创建命令
+            SHOW CREATE TABLE 'tbl_name';
+        查看表状态
+            SHOW TABLE STATUS LIKE 'students' \G;
+            \G 表示竖向显示
+        删除表
+            DROP TABLE [IF EXSITS] 'tbl_name';
+        修改表
+            ALTER TABLE 'tbl_name'
+            字段  add  drop  alter  change  modify
+            索引  add  drop
+            表选项  修改
+
+        查看索引
+            SHOW INDEXES FROM [db_name.]tbl_name
+
+        索引，是特殊的数据结构，定义在查找时作为查找条件的字段，索引可以有自己的名称
+        
+        创建索引  CREATE INDEX index_name ON tal_name (index_col_name)
+        删除索引  DROP INDEX index_name ON tbl_name
+
+        DML：INSERT  UPDATE  DELETE  SELECT
+            INSERT [INTO] tbl_name (colname,...) values (val,..)
+            DELETE FROM tbl_name [WHERE clause]
+            SELECT col1, col2, ... FROM tbl_name [WHERE clause] [ORDER BY 'col_name' [desc]] [LIMIT [m,]n]
+
+            字段表示法
+                *  所有字段
+                as 字段别名  col1 as alias
+
+            WHERE clause
+                操作符
+                    > < >= <= == !=  BETWEEN ... AND ...
+                各种逻辑操作  and or not
+                    LIKE 
+                    % 任意长度的任意字符
+                    - 任意单个字条
+                    RLIKE  基于正则表达式匹配
+
+            UPDATE tbl_name SET col1=val1,... [WHERE clause] [ORDER BY col_name [DESC]] [LIMIT [m,]n]
+    用户账号及权限管理
+        用户账号：'user'@'host'
+        user 用户名
+        host 此用户访问mysql服务器允许通过哪些主机进行远程连接
+
+        创建用户账号
+            CREARE USER 'username'@'host' [INDENTIFIED BY 'password'];
+        删除用户
+            DROP USER 'username'@'host'
+        授权
+            权限：管理权限，数据库，表，字段，存储例程(过程、函数、触发器)      
+            GRANT priv_type ON [object_type] db_name.tbl_name TO 'user'@'host' [INDENTIFIED BY 'password'] [WITH GRANT OPTION]
+                priv_type  ALL [PRIVILEGES]
+                db_name.tb_name
+                *.*  所有库所有表
+                db_name.*  指定库的所有表
+                db_name.tb_name  指定库的指定表
+                db_nam.route_name  指定库的存储例程
+
+            查看指定用户获得权限
+                SHOW GRANT FOR 'user'@'host';
+                SHOW GRANT FOR CURRENT_USER;
+        回收授权
+            REVOKE priv_type ... ON db_name.tb_name FROM 'user'@'host';
+        
+        MariaDB服务进程启动时会读取mysql库中的所有授权表至内存中
+            (1)GRANT或REVOKE等执行操作会保存表中，服务进程会自动重读授权表
+            (2)对于不能够或不及时重读授权表的命令，可手动重读授权表
+            mysql> FLUSH PRIVILEGES;
+
+    LAMP组合的编译安装
+        httpd-2.2 对 fastcgi 协议支持，需要额外安装 fastcgi 模块
+        httpd-2.4 自带 fastcgi 模块
+        
+        安装次序
+            httpd mariadb php
+
+sudo
+    su  Switch User
+    su -l user -c COMMAND
+    授权之后，能够让某用户另一用户的身份运行命令
+    #sudo COMMAND
+
+    配置文件  /etc/sudoers
+        root ALL=(ALL) ALL
+        %wheel ALL=(ALL) ALL
+        who 运行命令者的身份  user
+        where 通过哪些主机  host
+        (whom) 以哪个用户身份  runas
+        which 运行哪些命令  command
+
+    配置项
+        users host(runas) command
+
+        users:
+            username #uid user_alias %groupname %#gid
+
+        Alias_Type NAME item1,item2
+        User_Alias NETADMIN = netuser1,netuser2
+        Cmnd_Alias NETADMINCMDS = /usr/sbin/ip
+       
+        NETADMIN ALL=(root) NETADMINCMDS    
+
+        Alias_Type
+            User_Alias
+            Host_Alias
+            Runas_Alias
+            Cmnd_Alias
+
+            host：ip hostname netaddr(ip/netmask)
+            command：command_name  directory sudoedit
+
+        Cmnd_Alias  .... /usr/bin/passwd [a-z]* , !/usr/bin/passwd root
+
+        sudo [-u user] COMMAND
+        -u user
+        -k 清除此前记录的用户密码
+
+文件共享服务
+    应用层：ftp
+    内核：nfs(Sun)
+    samba 跨平台，在Linux上实现CIFS(SMB)协议
+
+    ftp：File Trnasfer Protocol
+        应用层协议：tcp 21
+        c/s
+        命令连接：文件管理类命令，始终在线的连接
+        数据连接：数据传输，按需创建及关闭的连接
+
+        数据传输格式
+            文本传输
+            二进制传输
+
+        主动：由服务器创建
+            命令：
+                client：随机端口，如：50000 -> server: 21 
+            数据：
+                server: 20/tcp -> client 50000+1
+
+        
+            命令：
+                client：随机端口，如：50000 -> server: 21 
+            数据：
+                client 50000+1 -> server: 随机端口
+                121, 23 = 121 * 256 + 23              
+
+    用户认证：
+        虚拟用户：仅用于访问某特定资源
+        名称解析框架：nsswich  network server switch
+            配置文件：/etc/nsswitch.conf
+            模块：/lib64/libnss*  /usr/lib64/libnss*
+        pam，Pluggable Authtication Module
+            配置文件：/etc/pam.conf  /etc/pam.d/*
+
+        系统用户
+        匿名用户
+
+    CentOS 6.5 
+        用户认证：/ect/pam.d/vsftpd
+        服务脚本：/etc/rc.d/init.d/vsftpd
+        配置文件目录：/etc/vsftpd
+            主配置文件  vsftpd.conf
+
+        匿名用户(映射为系统用户ftp)共享资源目录/var/ftp
+        系统用户通过ftp访问的资源位置，用户家目录
+        虚拟用户通过ftp访问资源的位置，给虚拟用户指定的映射成为系统用户的家目录
+
+        匿名用户配置
+            anonymous_enable=YES
+            anon_upload_enable=YES
+            anon_mkdir_write_enable=YES
+            anon_other_write_enable=YES
+
+        系统用户配置
+            write_enable=YES
+            local_umask=022
+            禁锢所有ftp本地用户于其家目录
+            chroot_local_user=YES 
+            禁锢文件中指定的ftp用户于其家目录   
+            chroot_list_enbale=YES
+            chroot_list_file=/etc/vsftpd/chrooot_list
+
+        在目录放置 .message文件，当用户切换到此目录时，会输入该文件中内容，作为提示信息
+        dirmessage_enable=YES
+
+        是否开启上传下载日志
+        xferlog_enable=YES
+
+        是否使用标准日志格式
+        xferlog_std_format=YES
+
+        日志存储位置
+        xferlog_file=/var/log/xferlog
+
+        改变上传文件的属主
+        chown_uploads=YES
+        chown_username=USERNAME
+
+        vsftpd使用pam完成认证，其用到的pam文件
+        pam_service_name=vsftpd
+
+        是否启用控制用户登录
+        userlist_enable=YES
+            列表文件：/etc/vsftpd/user_list  (默认文件)
+        userlist_deny=YES|NO
+            YES表示黑名单
+            NO表示白名单
+
+        连接限制
+            max_clients：最大并发数
+            max_per_ip：每IP同时发起的并发请求
+
+        传输速率
+            anon_max_rate：匿名用户最大传输速率，字节/秒
+            local_max_rate：本地用户最大传输速率，字节/秒
+
+    虚拟用户
+        所有虚拟用户被统一映射为一个指定的系统账号，访问的共享位置为此用户的家目录
+        各虚拟用户可被赋予不同的权限
+        通过匿名用户的权限控制参数指定
+        虚拟用户账号存储方式
+            1. 文件
+                奇数行：用户名
+                偶数行：密码
+                此文件概要被编码为hash格式
+            2. 关系型数据库
+                即时通过查询数据完成认证
+                mysql
+                    pam要依赖于pam-mysql
+                    # yum -y install pam-mysql
+            配置过程如下：
+
+                1. 安装所需要程序
+
+                (1)安装mysql和pam_mysql
+
+                # yum -y install vsftpd mysql-server mysql-devel pam_mysql
+
+                注意：pam_mysql由epel源提供。
+
+                2. 创建虚拟用户账号
+
+                (1)准备数据库及相关表
+
+                首先请确保mysql服务已经正常启动。而后，按需要建立存储虚拟用户的数据库即可，这里将其创建为vsftpd数据库。
+
+                mysql> create database vsftpd;
+
+                mysql> grant select on vsftpd.* to vsftpd@localhost identified by 'www.magedu.com';
+                mysql> grant select on vsftpd.* to vsftpd@127.0.0.1 identified by 'www.magedu.com';
+                mysql> flush privileges;
+
+                mysql> use vsftpd;
+                mysql> create table users (
+                    -> id int AUTO_INCREMENT NOT NULL,
+                    -> name char(20) binary NOT NULL,
+                    -> password char(48) binary NOT NULL,
+                    -> primary key(id)
+                    -> );
+
+                (2)添加测试的虚拟用户
+
+                根据需要添加所需要的用户，需要说明的是，这里将其密码为了安全起见应该使用PASSWORD函数加密后存储。
+
+                mysql> insert into users(name,password) values('tom',password('magedu'));
+                mysql> insert into users(name,password) values('jerry',password('magedu'));
+
+
+                3. 配置vsftpd
+
+                (1)建立pam认证所需文件
+
+                #vi /etc/pam.d/vsftpd.mysql
+                添加如下两行
+                auth required /lib/security/pam_mysql.so user=vsftpd passwd=www.magedu.com host=localhost db=vsftpd table=users usercolumn=name passwdcolumn=password crypt=0
+                account required /lib/security/pam_mysql.so user=vsftpd passwd=www.magedu.com host=localhost db=vsftpd table=users usercolumn=name passwdcolumn=password crypt=0
+
+
+                注意：由于mysql的安装方式不同，pam_mysql.so基于unix sock连接mysql服务器时可能会出问题，此时，建议授权一个可远程连接的mysql并访问vsftpd数据库的用户。
+
+                (2)修改vsftpd的配置文件，使其适应mysql认证
+
+                建立虚拟用户映射的系统用户及对应的目录
+                # useradd -s /sbin/nologin -d /var/ftproot vuser
+                # chmod go+rx /var/ftproot
+
+                请确保/etc/vsftpd.conf中已经启用了以下选项
+                anonymous_enable=YES
+                local_enable=YES
+                write_enable=YES
+                anon_upload_enable=NO
+                anon_mkdir_write_enable=NO
+                chroot_local_user=YES
+
+                而后添加以下选项
+                guest_enable=YES
+                guest_username=vuser
+
+                并确保pam_service_name选项的值如下所示
+                pam_service_name=vsftpd.mysql
+
+
+                4. 启动vsftpd服务
+
+                # service vsftpd start
+                # chkconfig vsftpd on
+
+                查看端口开启情况
+
+                # netstat -tnlp |grep :21
+                tcp        0      0 0.0.0.0:21              0.0.0.0:*               LISTEN      23286/vsftpd 
+
+                使用虚拟用户登录,验正配置结果，以下为本机的命令方式测试，你也可以在其它Win Box上用IE或者FTP客户端工具登录验正
+                # ftp localhost
+
+
+
+                5. 配置虚拟用户具有不同的访问权限
+
+                vsftpd可以在配置文件目录中为每个用户提供单独的配置文件以定义其ftp服务访问权限，每个虚拟用户的配置文件名同虚拟用户的用户名。配置文件目录可以是任意未使用目录，只需要在vsftpd.conf指定其路径及名称即可。
+
+                (1)配置vsftpd为虚拟用户使用配置文件目录
+
+                # vim vsftpd.conf
+                添加如下选项
+                user_config_dir=/etc/vsftpd/vusers_config 
+
+                (2)创建所需要目录，并为虚拟用户提供配置文件
+
+                # mkdir /etc/vsftpd/vusers_config/
+                # cd /etc/vsftpd/vusers_config/
+                # touch tom jerry
+
+                (3)配置虚拟用户的访问权限
+
+                虚拟用户对vsftpd服务的访问权限是通过匿名用户的相关指令进行的。比如，如果需要让tom用户具有上传文件的权限，可以修改/etc/vsftpd/vusers_config/tom文件，在里面添加如下选项即可。
+                anon_upload_enable={YES|NO}
+                anon_mkdir_write_enable={YES|NO}
+                anon_other_write_enable={YES|NO}
+
+    NFS Net File System
+        传统意义上，文件系统在内核上实现
+        RPC，远程函数调用，远程主机上的函数  Remote Procedure Call Protocol
+        一部分功能由本地程序完成，另一部分功能由远程主机完成
+        NIS：Network Information System
+
+        RPC服务 portmap
+        nfs服务 nfsd mountd idmapd
+
+        查看NFS共享文件系统
+            showmount -e NFSSERVER_IP
+            showmount -e 172.16.100.7
+
+        挂载NFS文件系统
+            mount -t nfs SERVER:/PATH/TO/SHEAREDS /PATH/TO/MOUNT_POINT
+
+        配置文件：/etc/exports
+            文件系统  客户端(选项)  客户端(选项)
+
+            客户端：IP  FQDQ或DOMAIN  NETWORK
+            选项：
+                rw  ro  async sync root_squash no_root_squash all_squash anonuid anongid
+
+    Samba
+        smb: Service Messsage Block
+        CIFS Common Internet File System
+        137/upd 138/upd 139/tcp 445/tcp
+
+        NetBios: Windows基于主机名实现互相通信的机制
+
+        samba
+            nmdb: netbios
+            smdb: cifs
+            winbindd: 活动目录
+
+        UNC路径：\\SERVER\shared_nane
+
+        获取主机共享信息()
+            smbclient -L HOST -U USERNAME
+
+        交互式访问
+            smbcliet //HOST/shared_name -U USERNAME
+            smbcliet //172.16.100.7/test -u test
+
+        基于挂载方式的访问
+            mount -t cifs //SERVER/shared_name /MOUNT_POINT -o usrname=USERNAME,password=PASSWORD
+
+
+        服务器端安装
+            yum -y install samba
+
+            服务脚本
+                /etc/rc.d/init.d/nmb
+                /etc/rc.d/init.d/smb
+            主配置文件
+                /etc/smb/smb.conf
+
+        samba用户：
+            账号：都是系统用户
+            密码：samba服务自有密码文件
+
+        smbpasswd命令
+            -a USER  添加系统用为samba用户
+            -d  禁用
+            -e  启用
+            -x  删除
+
+        配置文件
+            /etc/smb/smb.conf
+
+            全局设定
+            某特定共享的设定
+                家目录
+                打印机
+                自定义共享
+
+            自定义共享
+                [shared_name]   ;例如，myshared
+                    path = /path/to/shared_directory
+                    comment = 注释信息
+                    guest ok = {yes|no}
+                    public = {yes|no}
+                    writable = {yes|no}
+                    read only = {yes|no}
+                    write list = +GROUP_NAME
+        testparam命令，测试配置文件是否有语法错误
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
