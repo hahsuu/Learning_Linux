@@ -2081,6 +2081,166 @@ sudo
                     read only = {yes|no}
                     write list = +GROUP_NAME
         testparam命令，测试配置文件是否有语法错误
+		
+rsyslog
+	日志：历史日志
+	日志级别，事件的关键性程序，loglevel
+	
+	系统日志服务
+		syslog：
+			syslogd		system
+			rlogd		kernel
+		rsyslog
+			syslogd
+			klogd
+			
+		rsyslog特性
+			1. 多线程
+			2. UDP、TCP、SSL和TLS
+			3. mysql pgsql oracle实现日志存储
+			4. 强大过滤器，可实现过虑日志中任何产部分自定义输出格式
+			
+	日志收集
+		facility	设施，从功能或程序对日志分类
+            auth authpriv cron daemon mail mark lpr news security user uucp local0-local7
+        priority
+            debug info notice warn(warning) err(error) crit(critical) alert emerg(panic)
+            指定级别
+                *: 所有级别
+                none: 没有级别
+                priority: 此级别及更高级别的日志信息
+                =priority: 此级别
+
+    程序环境
+        主程序：rsyslogd
+        配置文件：/etc/rsyslog.conf
+        服务脚本：/etc/rc.d/init.d/rsyslog
+
+    rsyslog.conf
+        RULES:
+        facility.priority target
+        target
+            文件路径：记录于指定的日志文件，通常在/var/log目录下，文件路径前“-”表示异步写入
+            用户：将日志通知给指定用户
+            日志服务器：@host，host必须监听在tcp或udp协议的某个端口(默认为514)提供服务
+            管道 ｜COMMAND
+
+    日志记录格式
+        事件产生的日期时间   主机      进程(PID)     事件内容
+        有些日志记录二进制格式：
+        /var/log/wtmp    当前系统上成功登录的日志
+        /var/log/btmp    当前系统上失败登录的日志
+        分别用last和lastb命令查看，lastlog命令，显示当前系统上每一用户最近一次登录的时间
+
+    rsyslog服务器
+        配置mysql存储日志
+            1. 准备好mysql服务器，创建用户，授权
+            2. 安装rsyslog-mysql程序包
+            3. 创建rsyslog-mysql依赖的数据库
+            4. 配置rsyslog使用ommysql模块
+                $ModLoad ommysql
+                facility.priority :ommysql:DBHOST,DB,DB_USER,DB_PASSWD
+                重启rsyslog服务
+			5. 安装loganalyzer
+				配置webServer，支持php
+					yum install httpd php php-mysql php-gd
+					
+				安装loganalyzer
+					tar xvzf loganalyzer-3.6.4.tar.gz 
+					cd loganalyzer-3.6.4 
+					mv src/* /usr/local/apache/htdocs/syslog/ 
+					mv contrib/* /usr/local/apache/htdocs/syslog/ 
+					chmod u+x /usr/local/apache/htdocs/syslog/*.sh 
+					./configure.sh 
+					./secure.sh 
+					chmod 666 config.php 
+
+nsswitch和pam
+	nsswitch network service switch
+	名称解析: name id
+	
+	解析库:文件，mysql，NIS，LDAP，DNS
+	库：
+		/usr/lib64/libnss*
+		/lib64/libnss*
+	getent命令
+		getent database [entry]
+		getent passwd root
+		
+	配置文件
+		db: store1, store2
+		
+	pam pluggable authentication modules  插入式认证模块
+		认证库
+			文件 mysql LDAP NIS
+			通用框架，与各存储相互实现，各种辅助功能 /lib64/security/*
+			
+		配置文件
+			/etc/pam.conf
+			/etc/pam.d/*
+			通常每个应用单独使用一个配置文件，每个配置文件中定义一种检查规则
+			格式：
+				type	control		modules-path		module-args
+				
+			type：检查功能类别
+				auth: 账号的认证与授权
+				account: 与账号管理相关的非认证功能
+				password: 用户修改密码时，密码检查规则
+				session: 用户获取到服务之前或使用服务完成之后要进行的一些附加性操作
+				
+			control：同一种功能的多个检查之间如何组合，有两种实现方式
+			
+				简单机制，使用一个关键词
+				requied   一票否决(继续检查后续)
+				requisite  一票否决(直接返回)
+				sufficient  一票通过
+				optional  可选
+				include  包含其它配置文件中的规则
+				
+				复杂机制，使用一个或多个key=value形式组合
+				[status1=action1, status2=action2]
+				status  返回状态
+				action  ok done die ignore bad reset
+			
+			modules-path：模块路径，/lib/security，可使用相对路径
+			
+			
+		模块
+			pam_shells.so
+			pam_limits.so
+				模块通过实现配置文件控制用户对系统的资源使用控制
+				/etc/security/limits.conf
+				/etc/security/limits.d/*
+				
+				domain tppe item value 
+				
+				domain
+					username 
+					@group
+					*：所有用户
+					
+				type
+					hard  由root设定，通过kernel强制生效
+					soft
+					-：同时限定
+					
+				item
+					nofile  用户所能够同时打开的文件数
+					nproc  能同时运行的最大进程数
+					maxlogins  最大登录次数
+					msqqueue  所能使用POSIX消息队列能占用的最大内存空间
+					sigpending  能使用的最大信号数
+				
+				ulimit -n {#}  显示或设置最大打开文件数
+				ulimit -u {#}  显示或设置最大运行进程数
+				
+				
+			
+			
+	
+		
+			
+		
 
 
 
