@@ -2406,10 +2406,85 @@ iptables：包过滤防火墙
 				iptables -A OUTPUT -s 10.10.10.79 -p icmp --icmp-type 8 -j ACCEPT
 				iptables -A INPUT -d 10.10.10.79 -p icmp --icmp-type 0 -j ACCEPT
 			
-					
-			
-			
+			显式扩展：必须显式指明使用的扩展模块		/usr/lib64/xtables
+				CentOS 6 man iptables
+				CentOS 7 man iptables-extensions
 				
+				1. multiport扩展
+				以离散方式指定多商品扩展，最多15个
+				[!] --source-ports,--sports port[,port|,port:port]...
+				[!] --source-ports,--sports port[,port|,port:port]...
+				[!] --source-ports,--sports port[,port|,port:port]...
+				
+				例子：
+				iptables -I INPUT -d 172.16.100.7 -p tcp -m multiport --dports 22,80 -j ACCEPT
+				iptables -I OUTPUT -s 172.16.100.7 -p tcp -m multiport --sports 22,80 -j ACCEPT
+					
+				2. iprange扩展
+				指明连续（但一般不能扩展为一个网络）ip地址
+				[!] --src-range from[-to]
+				[!] --dst-range from[-to]
+
+				例子：
+				iptables -A INPUT -d 172.16.100.7 -p tcp --dport 23 -m iprange --src-range 172.16.100.1-172.16.100.100 -j ACCEPT
+				iptables -A OUTPUT -s 172.16.100.7 -p tcp --sport 23 -m iprange --dst-range 172.16.100.1-172.16.100.100 -j ACCEPT
+				
+				3. string扩展
+				检查报文中出现的字符串
+				--algo {bm|kmp}
+				[!] --string pattern
+				
+				4. time扩展
+				根据指定的时间范围进行匹配，默认使用是UTC
+				--datestart YYYY[-MM[-DD[Thh[:mm[:ss]]]]]
+				--datestop YYYY[-MM[-DD[Thh[:mm[:ss]]]]]
+				--timestart hh:mm[:ss]
+				--timestop hh:mm[:ss]
+				[!] --monthdays day[,day...]
+				[!] --weekdays day[,day...]
+				--kerneltz 使用内核时间，不使用utc，CentOS 6中不支持
+				例子：
+            	iptables -A INPUT -d 172.16.100.7 -p tcp --dport 901 -m time --weekdays Mon,Tus,Wed,Thu,Fri --timestart 08:00:00 --time-stop 18:00:00 -j ACCEPT
+            	iptables -A OUTPUT -s 172.16.100.7 -p tcp --sport 901 -j ACCEPT
+				
+				5. connlimit
+				根据每客户端ip地址（也可以是地址块）做并发连接数量匹配
+				--connlimit-above n  连接数量大于n
+				--connlimit-upto n  连接数量小于等于n
+				例子
+				iptables -A INPUT -p tcp --syn --dport 23 -m connlimit --connlimit-above 2 -j REJECT
+				iptables -A INPUT -p tcp --syn --dport 23 -m connlimit --connlimit-upto 2 -j ACCEPT
+				
+				6. limit扩展
+				基于收发报文的速率作检查，基于令牌桶算法
+				--limit-burst number
+				--limit rate[/second|/minute|/hour|/day]
+				
+				7. state扩展			
+				根据连接追踪机制检查连接状态
+				调整连接追踪功能所能容纳的最大连接数
+				/proc/sys/net/nf_conntrack_max		默认为65536
+				已追踪并记录的连接
+				/proc/net/nf_conntrack
+				不同协议的追踪连接属性
+				
+				连接追踪中的状态：
+					NEW: 新建立一个会话
+					ESTABLISHED：已建立的连接
+					RELATED: 有关联关系的连接
+					INVALID: 无法识别的连接
+					
+				法则：
+					对于进入的状态为ESTABLISHED都应该放行；
+					对于出去的状态为ESTABLISHED都应该放行；
+					严格检查进入的状态为NEW的连接；
+					所有状态为INVALIED都应该拒绝；
+				
+				--state STATE1,STATE2
+				
+				
+			
+					
 	
 			
 			
