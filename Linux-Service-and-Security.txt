@@ -2481,7 +2481,6 @@ iptables：包过滤防火墙
 					所有状态为INVALIED都应该拒绝；
 				
 				--state STATE1,STATE2
-<<<<<<< HEAD
 
                 放行被动模式下的ftp服务
                 1. 装载ftp追踪时专用的模块
@@ -2501,14 +2500,12 @@ iptables：包过滤防火墙
                     ESTABLISHED
 
                     iptable -A OUTPUT -s localIP -p tcp -m state --state ESTABLISHED -j ACCEPT
-=======
 	练习：
 		放行telnet，ftp，samba，dns（区域传送，查询）
 		telnet 23/tcp
 		samba 137,138/udp  139,445/tcp
 		dns INPUT 53/udp 53/tcp OUTPUT 53/udp 53/tcp
->>>>>>> 062e010b3598d5cc42af59217acce87442bd34d9
-				
+		
 	nat Network Address Translation，安全性
 	proxy：代理，应用层
 		nat：
@@ -2724,6 +2721,8 @@ nginx(web server，web reverse server)
 			error_log 文件 级别
 			若要使用debug级别，要在编译时使用 --with-debug选项
 			
+    总结：常需要调整的参数        
+
 			
 			
 			
