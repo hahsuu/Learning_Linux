@@ -2481,12 +2481,239 @@ iptables：包过滤防火墙
 					所有状态为INVALIED都应该拒绝；
 				
 				--state STATE1,STATE2
+	练习：
+		放行telnet，ftp，samba，dns（区域传送，查询）
+		telnet 23/tcp
+		samba 137,138/udp  139,445/tcp
+		dns INPUT 53/udp 53/tcp OUTPUT 53/udp 53/tcp
 				
-				
+	nat Network Address Translation，安全性
+	proxy：代理，应用层
+		nat：
+			SNAT：只修改请求报文的源地址
+			DNAT：只修改请求报文的目标地址
+		nat表：
+			PREROUTING		DNAT
+			OUTPUT
+			POSTROUTING		SNAT
+		
+		源地址转换：
+			iptables -t nat -A POSTROUTING -s LocalNet ! -d LocalNet -j SNAT --to-source ExternalIP
+			iptables -t nat -A POSTROUTING -s LocalNet ! -d LocalNet -j MASQUERADE
+		
+		目标地址转换：
+			iptables -t nat -A PREROUTING -d ExtIp -p {tcp|upd} --dport PORT -j DNAT --to-destination InternalServerIP[:port]
 			
-					
+tcp_wrapper: tcp包装器
+	对基于tcp开发并提供服务的应用程序，提供一访问控制工具
+	基于库调用实现其功能：libwrap
+	判断服务是否能由tcp_wrapper进行访问控制
+		1. 动态编译：ldd命令
+		2. 静态编译：strings命令查看程序文件中，其结果是否出现hosts.allow和hosts.deny文件
+		
+	在配置文件中分别定义控制规则实现访问控制
+		/etc/hosts.allow
+		/etc/hosts.deny
 	
+	配置文件语法：
+		daemon_list: client_list [:option]
+		
+		daemon_list：应用程序的文件名称，而非服务名，应用程序列表，用逗号分开。例如：sshd，vsftp。  ALL表示所有服务
+		client_list：IP地址，主机名，网络地址。网络地址不能使用前缀格式，要使用完整格式掩码。例如，172.16.0.0/255.255.0.0，可使用短格式，172.16.  
+		ALL表示所有主机
+		KNOWN
+		UNKNOWN
+		PARANDOID：正解反角不匹配
+		
+		option：
+		deny：拒绝，主要用于hosts.allow文件
+		allow：允许，主要用于hosts.deny文件
+		spawn：启动额外应用程序
+		
+	Except
+		vsftp: 172.16. except 172.16.100.0/255.255.255.0 except 172.16.100.1
+		vsftp允许172.16.整个网络访问，但172.16.100.0这个网段除外，在172.16.100.0这个网段中， 172.16.100.1这个地址又除外，即可访问vsftp
+		
+		
+nginx(web server，web reverse server)
+	
+	I/O类型
+		同步和异步：synchronous，asynchronous
+		关注消息通知机制
+		同步：调用不会立即返回，但一旦返回，即是最终结果
+		异步：调用会立即返回，但返回的不是最终结果，被调用者通过状态通知机制来通知调用者，或通过回调函数来处理结果
+		
+		阻塞和非阻塞：block，nonblock
+		关注的是调用者等待被调用者返回调用结果时的状态
+		阻塞：调用结果返回之前，调用者会被挂起，调用者只有在得到返回结果之后才能继续
+		非阻塞：调用者在调用结果返回之前，不会被挂起，即不会阻塞调用者
+		
+	I/O模型
+		blocking IO
+		nonblocking IO
+		IO Multiplexing  复用型IO  select()，poll()
+		Signal Driven IO  事件驱动式IO
+			通知方式：水平触发（多次通知）  边缘触发（只通知一次）
+		asynchronous IO  异步IO
+		
+		一次read操作
+			1. 等待数据准备好，从磁盘到内核内存
+			2. 数据从内核内存复制到进程内存
 			
+	nginx  engin X
+		Tengine（Taobao）
+		
+		特性：
+			模块化设计，较好的扩展性（不支持动态装载）
+			高可靠
+			低内存消耗，据有关实验，10K个keep-alive模式下的连接，仅需2.5MB内存
+			支持热部署，不停机而更新配置文件，日志滚动，升级程序版本
+			支持事件驱动，AIO，mmap
+			
+		基本功能：
+			静态资源的web服务器，能缓存打开的文件描述符
+			http，smtp，pop3协议的反向代理服务器
+			缓存加速，负载均衡
+			支持FastCGI(fpm, LNMP)，uWSGI(python)等
+			模块化(非DSO机制)，过滤器，ZIP，SSI及图像大小调整
+			支持SSL
+			
+		扩展功能：
+			基于名称和IP的虚拟主机
+			支持keepalive
+			支持平滑升级
+			定制访问日志，支持使用日志缓冲区，提供日志存储
+			支持url rewrite
+			支持路径别名
+			支持基于IP及用户的访问控制
+			支持速率和并发数限制
+			
+		基本架构：
+			一个master进程，生成多个worker进程
+			事件驱动：epoll(边缘触发)，kqueue(BSD) /dev/poll(Solaris)
+				复用器：select, poll, rt signal
+			支持sendfile，sendfile64
+			支持AIO
+			支持mmap
+		
+		工作模式，非阻塞事件驱动一个master进程生成多个worker线程，每个worker响应n个请求
+		
+		模块类型：
+			核心模块
+			Standard HTTP modules
+			mail modules
+			3rd party modules
+			
+		安装方法：
+			源码编译安装
+			制作好的程序包，rpm包
+			
+			编译安装
+			
+				yum install gcc openssl-devel pcre-devel zlib-devel 
+
+				# groupadd -r nginx
+				# useradd -r -g nginx -s /bin/false -M nginx
+
+				./configure \
+				  --prefix=/usr \
+				  --sbin-path=/usr/sbin/nginx \
+				  --conf-path=/etc/nginx/nginx.conf \
+				  --error-log-path=/var/log/nginx/error.log \
+				  --http-log-path=/var/log/nginx/access.log \
+				  --pid-path=/var/run/nginx/nginx.pid  \
+				  --lock-path=/var/lock/nginx.lock \
+				  --user=nginx \
+				  --group=nginx \
+				  --with-http_ssl_module \
+				  --with-http_flv_module \
+				  --with-http_stub_status_module \
+				  --with-http_gzip_static_module \
+				  --http-client-body-temp-path=/var/tmp/nginx/client/ \
+				  --http-proxy-temp-path=/var/tmp/nginx/proxy/ \
+				  --http-fastcgi-temp-path=/var/tmp/nginx/fcgi/ \
+				  --http-uwsgi-temp-path=/var/tmp/nginx/uwsgi \
+				  --http-scgi-temp-path=/var/tmp/nginx/scgi \
+				  --with-pcre
+				make && make install
+
+		配置文件：
+			main配置段，包括event段（定义event模型工作特性），全局有效
+			http{} http协议相关配置
+			
+			配置指令要以分号结尾
+				directive value1 [value2 ...];
+			支持使用变量
+				内置变量：模块会提供内建变量
+				自定义变量：set var_name value
+				
+			主配置段的指令
+				用于调试、定位问题
+				正常运行必备的配置
+				优化性能配置
+				事件相关配置
+				
+		nginx主配置段内容
+			正常运行必备配置
+				1. user USERNAME [GROUPNAME];
+				指定运行nginx的用户和组
+				user nginx nginx;
+				2. pid /path/to/pid_file;
+				指定nginx守护进程的pid文件
+				pid /var/run/nginx/nginx.pid;
+				3. worker_rlimit_nofile #
+				指定所有worker进程所能打开的最大文件句柄数
+			
+			性能优化相关配置
+				1. worker_processes #;
+				worker进程个数，通常应略少于CPU物理核心数
+				2.worker_cpu_affinity cupmask ...;
+				优点：提升CPU缓存命中率，无法避免进程切换
+				cupmask
+					0000 0001
+					0000 0010
+					0000 0100
+				work_cpu_affinity 00000001	00000010 00000100;    worker进程分别限定在第1，2，3个核心上
+				3. timer_resolution #;
+				计时器解析度，降低此值（配置增大数值），可减少gettimeofday()系统调用的次数
+				4. worker_priority #
+				指定worker进程的nice值
+				-20 - 20
+				100 - 140
+			
+			事件相关配置
+			1. accetp_mutex {on|off};
+			master调度用户请求到各worker进程时用的负载均衡锁，on表示能让worker轮流的，序列化的响应请求
+			2. lock_file file;
+			accetp_mutex用到的锁文件路径
+			3. use [epoll|rtsig|select|poll];
+			指明使用的事件模型，建议让nginx自行选择
+			4.worker_connections #;
+			设定单个worker进程能处理的最大并发数
+			worker_connections 10240
+			worker_connections * worker_processes
+			
+			用于调试定位问题
+			1. daemon{on|off};
+			是否能守护进程方式运行nginx，调试时可设定为off
+			2. master_process {on|off};
+			是否以master/worker模型运行nginx
+			3. error_log file [level];
+			error_log 文件 级别
+			若要使用debug级别，要在编译时使用 --with-debug选项
+			
+			
+			
+			
+			
+			
+			
+		
+		
+		
+		
+			
+							
 			
 	
 		
