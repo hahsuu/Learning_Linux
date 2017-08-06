@@ -2481,6 +2481,25 @@ iptables：包过滤防火墙
 					所有状态为INVALIED都应该拒绝；
 				
 				--state STATE1,STATE2
+
+                放行被动模式下的ftp服务
+                1. 装载ftp追踪时专用的模块
+                    modprobe nf_conntrack_ftp
+                2. 放行请求报文
+                    命令连接：NEW, ESTABLISHED
+                    数据连接：RELATED, ESTABLISHED
+
+                    原基础上修改
+                    iptables -R INPUT 2 -d localIP -p tcp -m multiport --dports 21,22,80 -m state --state NEW,ESTABLISHED -j ACCEPT
+                    iptables -R INPUT 1 -d localIP -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+                    
+                    新增
+                    iptables -A INPUT -d localIP -p tcp --dport 21 -m state --state NEW,ESTABLISHED -j ACCEPT
+                    iptables -A INPUT -d localIP -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+                3. 放行响应报文
+                    ESTABLISHED
+
+                    iptable -A OUTPUT -s localIP -p tcp -m state --state ESTABLISHED -j ACCEPT
 				
 				
 			
