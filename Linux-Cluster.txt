@@ -141,6 +141,11 @@ Cluster
 		清理和查看
 			ipvsadm -C
 			ipvsadm -L|l [options]
+				-n numberic 不作名称反解，以数字形式显示
+				-c --connection 显示连接
+				--stats  显示统计数据
+				--rate  显示速率
+				--exact  显示匹配结果的精确值
 
 		重载和保存
 			ipvsadm -R
@@ -163,6 +168,32 @@ Cluster
 		 	-m masquerade nat
 
 		-s scheduler 默认为wlc
+
+	lvs-nat
+
+	lvs-dr
+		两个内核参数
+		arp-announce  是否主动通告					要设置为 2
+		arp-igonre	  是否接收arp广播，并作出回应	要设置为 1
+
+		Director：
+			ifconfig eth0:0 172.16.100.10/32 broadcast 172.16.100.10 up
+			route add -host 172.16.100.10 dev eth0:0
+
+		RSs：
+			echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore
+			echo 1 > /proc/sys/net/ipv4/conf/eth0/arp_ignore
+			echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce
+			echo 2 > /proc/sys/net/ipv4/conf/eth0/arp_announce
+
+			ifconifg lo:0 172.16.100.10/32 broadcast 172.16.100.10 up
+			route add -host 172.16.100.10 dev lo:0
+
+	FWM：防火墙标记
+		iptables -t mangle -A PREROUTING -d 192.168.0.10 -p tcp --dport 80 -j MARK --set-mark 10
+		ipvsadm -A -f 10 -s rr
+		ipvsadm -a -f 10 -r 172.16.100.21 -g
+
 
 
 
