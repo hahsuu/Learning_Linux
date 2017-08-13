@@ -194,6 +194,123 @@ Cluster
 		ipvsadm -A -f 10 -s rr
 		ipvsadm -a -f 10 -r 172.16.100.21 -g
 
+	通过FWM定义集群方式
+		功能：将共享一组RS的集群服务统一进行定义
+
+		1. Director上netfilter的mangle表的PREROUTING定义用于打标的规则
+		iptables -t mangle -A PREROUTING -d $vip -p $protocol --dport $port - j MARK --set-mark #
+		$vip  IP地址
+		$protocol  协议
+		$port  端口
+
+		2. 基于FWM定义集群服务
+		ipvsadm -A -f # -s scheduler
+		ipvsadm -a -f # -r $rip
+
+		
+
+	lvs persistence   lvs持久连接
+		功能：无论lvs采用何种算法，其都能实现将来自同一client的请求始终定向至第一次调度时挑选出来的RS
+		待久连接模板：独立于算法
+		source_ip		RS 		timer
+
+		持久连接实现的方式：
+			每端口持久：PPC，单服务持久调度
+			每FWM持久：PFWMC，单FWM持久调度，port affinity
+			每客户端持久：PCC，单客户端持久调度，Director会将用户所有请求识别为集群服务，将dport的值设置为0
+				tcp  1-65536
+				udp  1-65536
+
+HA
+	SPOF：Single Point of Failure
+	directo：高可用集群
+	real server：让Director对其做建康状态检测，并根据检测结果自动完成添加或移除等管理功能
+	1. 基于协议层检查
+		ip：icmp
+		传输层：检测端口开放状态
+		应用层：请求获取关键性资源
+
+	2. 检查频度
+	3. 状态判断
+		下线：ok -> failure -> failure -> failure
+		上线：failure -> ok -> ok -> ok
+
+keepalived
+	Linux Cluster
+		LB: lvs, nginx
+		HA: keepalived, heartbeat, corosync, cman
+		HP:
+			分布式存储：HDFS
+			分布式计算：YARN
+				batch：MapReduce
+				in-memory：spark
+				stream：storm
+
+	keepavlived
+		Active/passive
+		lvs: vip, ipvs_rules
+		nginx: vip, nginx_server
+			resoure, 高可用资源
+
+		VRRP: Virtual Route Redudent Protocol, 虚拟路由冗余协议
+			master/backup
+
+		keepalived，VRRP协议在Linux主机以守护进程方式实现
+			能根据配置文件自动生成ipvs规则
+			对各RS做健康状态检查
+		组件：
+			VRRP Stack
+			chechers
+			ipvs wrapper -> ipvs
+
+		配置文件的组成部分
+			GLOBAL CONFIGURATION
+			VRRPD CONFIGURATION
+				vrrp instance
+				vrrp synchorization group
+			LVS CONFIGURATION
+
+		HA配置前提
+			1. 主机名，本机的主机名与hosts定义的主机名保持一致，要与hostname(uname -n)获得的名称保持一致
+			CentOS 6: /etc/sysconfig/network
+			CentOS 7: hostanmectl set-hostname $HOSTNAME
+			各节点要能互相解析主机名，一般建议通过hosts文件进行解析
+			2. 各节点时间同步
+			3. 确保iptables及selinux不会成为服务的阻碍
+
+			virtual_ipaddress {
+				172.16.100.80 dev eth0 label eth0:0
+			}
+
+			nopreempt  非抢占模式，默认为抢占模式
+
+			vrrp_sync_group VG_1 {
+				group {
+					VI_1
+					VI_2
+				}
+			}
+
+		总结：每个vrrp_instance需要专用组播地址
+
+		在VI中的主机状态发生改变时，发送通知
+
+		示例：
+			HTTP_GET {
+				url {
+					path /
+					status_code 200
+				}
+				connect_timeout 3
+				nb_get_retry 3
+				delay_before_retry 3
+			}
+
+			TCP_CHECK {
+				connect_timeout 3
+			}
+
+
 
 
 

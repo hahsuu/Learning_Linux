@@ -1,0 +1,79 @@
+DHCP
+	Dynamic Host Configuration Protocol
+	IP/Netmask
+	Gateway
+	DNS
+
+	bootp: boot protocol -> dhcp
+
+	租约
+		1. Client: dhcp discover, 发现
+		2. Server: dhcp offer, ip/netmask  gw
+		3. Client: dhcp request
+		4. Server: dhcp ack
+
+	续租
+		Client: dhcp requet
+		Server: dhcp ack
+				dhcp nak
+
+	Linux系统中DHCP的实现：dhcp, dnsmasq
+	DHCP服务端：67/udp
+		/usr/sbin/dhcpd
+			/etc/dhcp/dhcpd.conf -> /etc/rc.d/init.d/dhcpd
+			/etc/dhcp/dhpcd6.conf -> /etc/rc.d/init.d/dhcpd6
+		/usr/sbin/dhcrelay
+
+	DHCP客户端：68/udp, dhclient程序也作为一个进程监听在68端口
+
+	dhcp.conf
+		subnet 172.16.0.0 netmask 255.255.0.0 {
+			range 172.16.100.151 172.16.100.170      #地址池
+			option routes 172.16.100.1     #网关
+		}
+
+	地址分配记录：
+		/var/lib/dhcpd/dhcpd.leases
+
+	其它配置选项：
+		filename：指明引导文件名称
+		next_server：提供引导文件的服务器IP地址
+
+PXE：Preboot eXecute Environment，Intel
+
+	dhcp, tftp, file_server(yum repository)
+
+	CentOS 6 PXE:
+		yum -y install syslinux tftp-server
+		cp /usr/share/syslinux/pxelinux.0 /var/lib/tftpboot/
+		cp /media/cdrom/images/pxelinux/{vmlinuz,initrd.img} /var/lib/ftfpboot/
+		cp /media/cdrom/isolinux/{boot.cfg,vesamenu.c32,splash.png} /var/lib/tftpboot/
+		mkdir /var/lib/tftpboot/pxelinux.cfg
+		cp /media/cdrom/isolinux/isolinux.cfg /var/lib/tftpboot/pxelinux.cfg/default
+
+	CentOS 7 PXE:
+		yum -y install syslinux tftp-server
+		cp /usr/share/syslinux/pxelinux.0 /var/lib/tftpboot/
+		cp /media/cdrom/images/pxelinux/{vmlinuz,initrd.img} /var/lib/ftfpboot/
+		cp /usr/share/syslinux/{chain.c32,mboot.c32,menu.c32,memdisk} /var/lib/tftpboot
+		mkdir /var/lib/tftpboot/pxelinux.cfg
+
+		创建 /var/lib/tftpboot/pxelinux.cfg/default 文件，内容如下：
+
+			default menu.c32
+			promt 5
+			timeout 30
+			MENU TITLE CentOS 7 PXE Menu
+
+			LABEL linux
+			MENU LABEL Install CentOS 7 x86_64
+			KERNEL vmlinuz
+			APPEND initrd=initrd.img inst.repo=http://721.16.100.1/centos7 ks=http://172.16.100.1/centos7.cfg
+	
+
+
+
+
+
+
+
