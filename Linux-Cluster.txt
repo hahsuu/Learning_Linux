@@ -310,6 +310,260 @@ keepalived
 				connect_timeout 3
 			}
 
+Linux HA Cluster 
+	HA Cluster
+		AIS: heartbeat   OpenAIS: corosync/pacemaker    RHCS: cman/rgmanager(conga)
+
+	故障场景
+		硬件故障
+			设计缺陷
+			使用过久自然损坏
+			人为故障
+		软件故障
+			设计缺陷
+			bug
+			人为误操作
+
+	A = MTBF/(FTBF+MTTR)
+	MTBF: Mean Time Between Failure
+	MTTR: Mean Time To Repair
+
+
+	network partition
+		隔离：
+		STONITH: Shoot The Other Node In The Head
+		Fence: 资源级别隔离
+
+	failover domain
+	资源约束性
+		位置约束：资源对节点的倾向性
+		排列约束：资源彼此之间是否能运行于同一节点的倾向性
+		顺序约束：多个资源启动顺序的依赖关系
+
+	vote system
+		少数服从多数：quorum
+		超过总数的一半
+		with quorum: 拥有法定票数
+		without quorum: 不拥有法定票数
+
+		两个节点需要仲裁设备
+			ping node
+			qdisk
+
+		failover
+		failback
+
+	Messaging Layer:
+		heartbeat v1, v2, v3  corosync  cman
+
+	Cluster Resource Manager
+		heartbeat v1  haresource(配置接口：配置文件, haresource)
+		heartbeat v2  crm(在每个节点运行一个crmd守护进程，5560/tcp，有命令行接口，crmsh，GUI：heartbeat-gui, hb-gui)
+		heartbeat v3  pacemaker(配置接口：crmsh, pcs, GUI: hawk(suse), LCMC, pacemaker-gui)
+		rgmanager(配置接口：cluster.conf, system-config-cluster, conga(webgui))
+
+	高可用集群的可用方案
+		heartbeat v1 (haresource)
+		heartbeat v2 (crm)
+		heartbeat v3 + pacemaker
+		corosync + pacemaker
+			corosync v1 + pacemaker(plugin)
+			corosync v2 + pacemaker(standalone service)
+		cman + rgmanager
+		cman + pacemaker
+		corosync v1 + cman + pacemaker
+
+		corosync v2 + pacemaker
+		keepalived
+
+		RHCS: Red Hat Cluster Suite
+			RHEL5: cman + rgmanager + conga(ricci + luci)
+			RHEL6: cman + rgmanager + conga(ricci + luci)
+				   corosync + pacemaker
+				   corosync + cman + pacemaker
+			RHEL7: corosync + pacemaker
+
+		配置：
+			全局属性：property, stonith-enable等等
+			高可用服务：资源，通过RA
+
+	Resource Agent
+		service
+		LSB: /etc/rc.d/init.d/目录下的脚本
+		OCF(Open Cluster Framework): [provider] 
+			heartbeat
+			pacemaker 
+			linbit
+		STONITH
+		systemd  /etc/systemd/system/multi-user.target.wants
+			处于enabled状态的服务
+
+	资源类型
+		primitive: 主资源，原始资源，在集群中只能运行一个实例
+		clone: 克隆资源，在集群中可运行多个实例
+			匿名克隆，全局惟一克隆，状态克隆(主动，被动)
+		multi-state(master/slave): 克隆资源的特殊实现，多状态资源
+
+	资源属性
+		priority: 优先级
+		target-role: started, stopped, master
+		is-manageed: 是否允许集群管理资源
+		resource-stickness: 资源粘性
+		allow-migrate: 是否允许迁移
+
+	资源约束 score
+		位置约束：资源对节点的倾向性
+			(-∞, +∞)
+			任意值 + 无穷大 = 无穷大
+			任意值 + 负无穷大 = 负无穷大
+			无穷大 + 负无穷大 = 负无穷大
+		排列约束：资源彼此之间是否能运行于同一节点的倾向性
+			(-∞, +∞)
+		顺序约束：多个资源启动顺序的依赖关系
+			(-∞, +∞)
+			mandatory，强制，相当于无穷大
+
+	安装配置
+		CentOS7: corosync v2 + pacemaker
+			corosync v2 vote system
+			pacemaker  独立服务
+
+		集群生命周期管理工具
+			pcs: agent  pcsd
+			crmsh: agentless(pssh)
+
+		配置集群前提
+			1. 时间同步
+			2. 基于当前在使用的主机名互相访问
+			3. 是否会用到仲裁设备
+
+	heartbeat信息传递
+		unicast, udpu
+		multicast, udp
+		broadcast
+
+		组播地址：用于标识一个IP组播域，IANA把D类地址留给组播使用，224.0.0.0 - 239.255.255.255
+			永久组播地址：224.0.0.0 - 224.0.0.255
+			临时组播地址：224.0.1.0 - 238.255.255.255
+			本地组播地址：239.0.0.0 - 239.255.255.255
+
+	HA Web Service
+		vip: 172.16.100.92  ocf:heartbeat:IPaddr
+		httpd: systemd
+		nfs shared storage: ocf:heartbeat:Filesystem
+	示例：
+
+		totem {
+			version: 2
+
+			crypto_cipher: aes128
+			crypto_hash: sha1
+			setauth: on
+
+			interface {
+				ringnumber: 0
+				bindnetaddr: 172.16.0.0
+				mcastaddr: 239.185.1.31
+				mcastport: 5405
+				ttl: 1
+			}
+		}
+
+		nodelist {
+			node {
+				ring0_addr: 172.16.100.67
+				nodeid: 1
+			}
+			node {
+				ring0_addr: 172.16.100.68
+				nodeid: 2
+			}
+			node {
+				ring0_addr: 172.16.100.69
+				nodeid: 3
+			}
+		}
+
+		logging {
+			fileline: off
+			to_stderr: no
+			to_logfile: yes
+			logfile: /var/log/cluster/corosync.log
+			to_syslog: no
+			timestamp: on
+			logger_subsys {
+				subsys: QUORUM
+				debug: off
+			}
+		}
+
+		quorum {
+			provideer: corosync_votequorum
+		}
+
+	某些环境中可能不支持组播，这时应该配置 corosync 使用单播，下面是使用单播的 corosync 配置文件的一部分
+
+		totem {
+			#...
+			interface {
+				ringnummber: 0
+				bindnetaddr: 192.168.42.0
+				broadcast: yes
+				mcastport: 5405
+			}
+			interface {
+				ringnummber: 1
+				bindnetaddr: 10.0.42.0
+				broadcast: yes
+				mcastport: 5405
+			}
+			transport: udpu
+		}
+
+		nodelist {
+			node {
+				ring0_addr: 192.168.42.1
+				ring1_addr: 10.0.42.1
+				nodeid: 1
+			}
+			node {
+				ring0_addr: 192.168.42.2
+				ring1_addr: 10.0.42.2
+				nodeid: 2
+		}
+
+	HA Cluster工作模型
+		A/P: 两节点集群  active/passive
+			without-quorum-policy={stop | ignore | suicide | freeze}
+
+		A/A: 
+
+		webip, webstorage, webserver
+			node1: 100 + 0 + 0
+			node2: 0 + 0 + 0
+			node3: 0 + 0 + 0
+
+			node: 50 + 50 + 50 
+
+	pcs:
+		cluster
+			auth
+			setup
+		resource
+			describe
+			list
+			create
+			delete
+		constraint
+			colocation
+			order
+			location
+		property
+			list
+			set
+		status
+		config
+
 
 
 

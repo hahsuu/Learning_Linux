@@ -69,7 +69,216 @@ PXE：Preboot eXecute Environment，Intel
 			MENU LABEL Install CentOS 7 x86_64
 			KERNEL vmlinuz
 			APPEND initrd=initrd.img inst.repo=http://721.16.100.1/centos7 ks=http://172.16.100.1/centos7.cfg
-	
+
+ansblile
+	运维工作：
+		系统安装(物理机、虚拟机) -> 程序包安装、配置、服务启动 -> 批量操作 -> 程序发布 -> 监控
+
+	OS Provisioning
+		物理机：PEX   Cobbler
+		虚拟机：Image Templates
+	Configuration
+		puppet(ruby) 	
+		saltstack(python)
+		chef
+		cfengine
+	Command and Control
+		fabric
+
+	程序发布
+		不能影响用户你体验
+		系统不能停机
+		不能导致系统故障或造成系统完全不可用
+
+	预发布验证
+		新版本的代码先发布到服务器(跟线上环境完全相同，只是未接入到调度器)
+
+	灰度发布
+		在调度器上下线一批主机(maintanance) -> 关闭服务 -> 部署新版本应用程序 -> 启动服务 -> 在调度器上启用这一批服务器
+
+	自动化灰度发布：脚本，发布平台
+
+	运维工具的分类
+		agent：puppet  func
+		agentless: ansible fabric
+
+	模块化，调用特定的模块，完成特定任务
+	基于python语言实现，由paramiko，python和jinja2三个关键模块
+	部署简单，agentless
+	主从模式
+	支持自定义模块
+	支持playbook
+
+	幂等性
+	配置文件：
+		/etc/ansible/ansible.cfg
+		/etc/ansible/hosts
+
+	常用模块
+		ansible <host-pattern> [-m module_name] [-a args] [options]
+		ansible-doc -s $MODULE  查看模块帮助信息
+
+		command -a 'COMMAND'
+
+		user 
+			-a 'name= state={present|absent}'
+
+		group
+			-a 'name= gid= state= system='
+
+		cron
+			-a 'name= minute hour= job='
+
+		copy
+			-a 'dest= src= mode= owner= group='
+
+		file
+			-a 'path= mode= state={directory|link|present|absent}'
+
+		ping
+			没有参数
+
+		yum
+			-a 'name= state={present|latest|absent}'
+
+		service
+			-a 'name= state={started|stoped|restarted} enable={yes|no}'
+
+		shell
+			-a 'COMMAND'
+
+		script
+			-a '/PATH/TO/SCRIPT_FILE'
+
+	playbook核心元素
+		tasks：任务
+		variables：变量
+		templates：模板
+		handlers：处理器
+		roles：角色
+
+	变量
+		facts
+		--extra-vars "name=value name=value"
+		Inventory
+			主机变量   hostname  name=value
+			组变量
+				[groupname:vars]
+					name=value
+
+	ansible使用yaml基础元素
+		变量
+		Inventory
+		条件测试
+		迭代
+
+	playbook的组成部件
+		tasks：任务，即调用模块完成某操作
+		variables：变量
+		templates：模板
+		handlers：处理器，由某事件触发器执行操作
+		roles：角色
+
+		- hosts: websvrs
+		  remote_user: root
+		  tasks:
+		  - task1
+		    modulename:module_args
+		  - task2
+
+	简单示例1
+	- hosts: websrvs
+	  remote_user: root
+	  tasks:
+	  - name: create nginx group
+	    group: name=nginx system=yes gid=208
+	  - name: create nginx user
+	    user: name=nginx uid=208 group=nginx system=yes
+
+	- hosts: dbsrvs
+	  remote_user: root
+	  tasks:
+	  - name: copy file to dbsrvs
+	    copy: src=/etc/inittab dess=/tmp/inittab.ans
+
+
+	简单示例2
+	- hosts: websrvs
+	  remote_user: root
+	  tasks:
+	  - name: install httpd package
+	    yum: name=httpd state=latest
+	  - name: install configuration file for httpd
+	    copy: src=/root/conf/httpd.conf dest=/etc/httpd/conf/httpd.conf
+	  - name: start httpd service
+	    service: enabled=true name=httpd state=started
+
+	handlers示例
+	- hosts: websrvs
+	  remote_user: root
+	  tasks:
+	  - name: install httpd package
+	    yum: name=httpd state=latest
+	  - name: install configuration file for httpd
+	    copy: src=/root/conf/httpd.conf dest=/etc/httpd/conf/httpd.conf
+	    notify:
+	    - restart httpd
+	  - name: start httpd service
+	    service: enabled=true name=httpd state=started
+	  handlers:
+	  - name: restart httpd
+	    service: name=httpd state=restarted	
+
+	模板示例
+	- hosts: websrvs
+	  remote_user: root
+	  vars:
+	  - package: httpd
+	  - service: httpd
+	  tasks:
+	  - name: install httpd package
+	    yum: name={{ package }} state=latest
+	  - name: install configuration file for httpd
+	    template: src=/root/templates/httpd.conf.j2 dest=/etc/httpd/conf/httpd.conf
+	    notify:
+	    - restart httpd
+	  - name: start httpd service
+	    service: enabled=true name={{ service }} state=started
+	  handlers:
+	  - name: restart httpd
+	    service: name=httpd state=restarted
+
+	条件测试示例
+	hosts: all
+	remote_user: root
+	vars:
+	- username: user10
+	tasks:
+	- name: create {{ username }} user
+	  user: name={{ username }}
+	  when: ansible_fqdn == "node2.magedu.com"
+
+	tags标签
+	- name: install configuration file for httpd
+	  template: src=/root/tmplates/httpd.conf.j2 dest=/etc/httpd/conf/httpd.conf
+	  tags:
+	  - conf
+
+	特殊tags：always
+
+	roles
+	1. 目录名同角色名
+	2. 目录结构有固定格式
+	   files：静态文件
+	   templates：模板文件
+	   tasks：至少有一个main.yml文件，定义tasks，列出所有任务即可
+	   handlers：至少有一个main.yml文件，定义handler
+	   vars：至少有一个main.yml文件，定义变量
+	   meta：定义依赖关系
+	3. site.yml中定义playbook，额外也可有其它yml文件
+
+
+
 
 
 
