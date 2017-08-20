@@ -575,9 +575,522 @@ HAProxy(2)
             基于lamp部署discuz，而动静分离
         5. 用keepavlived高可用haproxy
 
+Web Cache
+    程序具有局部性
+        时间局部性
+        空间局部性
 
-			
-			
+        Key-Value：
+            Key：访问路径，RUL，做hash计算
+            Value：web content
+
+        热点数据：
+
+    命中率：hit/(hit+miss)
+        文档命中率：从文档个数进行衡量
+        字节命中率：从内容大小进行衡量
+
+    注意：
+        缓存对象：生命周期
+        缓存空间耗尽：LRU(最近最少使用)
+        可缓存，不可缓存(用户私有数据)
+
+    缓存处理步骤
+        接收请求 -> 解析请求(提取请求的RUL及各种首部) -> 查询缓存 -> 新鲜度检测 -> 创建响应报文 -> 发送响应 -> 记录日志
+
+    新鲜度检测机制：
+        过期日期：
+            HTTP/1.0 Expires
+                Expires: Thu, 04 Jun 2017 23:38:18 GMT
+            HTTP/1.1 Cache-Control: max-age
+                Cache-Control: max-age=600
+
+        有效性再验证：revalidate
+            如果原始内容未改变，则响应首部（不附带body部分），响应码304（Not Modified）
+            如果原始内容发生改变，正常响应，响应码200
+            如果原始内容消失，则响应404，此时缓存中的Cache Object也应该被删除
+
+        条件式请求首部
+            If-Modified-Since：基于请求内容的时间戳作验证
+            If-Unmodified-Since
+            If-Match
+            If-None-Match：
+                Etag：faiy89345，生成一个文件特征码
+
+    常见的缓存服务开源解决方案：
+        varnish, squid (类似nginx -> apache)
+        nginx, apache
+
+    Web Cache
+        squid, varnish   
+
+        https://www.varnish-cache.org
+
+        DSL: vcl, varnish configuration language
+
+        管理进程：编译VCL并应用新配置；监控varnish；初始化varnish；CLI接口
+        Child/cache：
+            Acceptor：接收新的连接请求
+            worker threads：处理用户请求
+            expiry：清理缓存中的过期对象
+
+        日志：Shared Memory Log，共享内存日志大小默认一般为90M，分为两部分，前一部分为计数器，后一部分为请求相关数据
+
+        VCL：Varnish Configuration Language
+            缓存策略配置接口：
+            基于“域”的简单编程语言
+
+        内存分配和回收：
+            malloc(), free()
+
+        Varnish如何存储缓存对象：
+            file：单个文件，重启后失效，不支持持久机制
+            malloc：内存
+            persistent：基于文件的持久存储
+
+        配置Varnish的三种应用
+            1. varnish应用程序的命令行参数
+                监听socket，使用的存储类型等等，额外的配置参数
+                    -p param=value
+                    -r param, param, ... 设置只读参数列表
+
+                    /etc/varnish/varnish.params
+
+            2. -p选项指明的参数
+                运行时参数：
+                    也可在程序运行中，通过其CLI接口进行配置
+
+            3. VCL：配置缓存系统的缓存机制
+                通过VCL配置文件进行配置
+                    先编译，后应用
+                        依赖于c编译器
+
+        命令行工具
+            varnishadm -S /etc/varnish/secret -T IP:PORT
+
+            Log:
+                varnishlog
+                varnishncsa
+
+            Statistics
+                varnishstat
+
+            Top:
+                 varnishtop
+
+回顾：
+    http cache
+        Expires：
+        Cache-Control：
+            max-age
+            s-maxage
+
+        Cache-Control:
+            no-cache
+            no-store
+            must-revalidate
+
+        条件式请求
+            If-Modified-Since
+            If-None-Match
+
+        varnish
+            v2, v3, v4
+            配置
+                varnishd进程配置：命令行选项：/etc/varinish/varnish.params
+                    -p
+
+                varnishd Child/cache：实时参数
+                    varnishadm
+                        param.set
+
+                缓存功能配置：
+                    vcl
+                        /etc/varnish/default.vcl
+
+varnish(2)
+    
+    vcl: DSL
+        state engine：各引擎之间存在一定程度上的相关性：前一个engine如果有多个下游engine，则上游engine要用return指明要转移的下游engine
+            vcl_recv
+            vcl_hash
+            vcl_hit
+            vcl_miss
+            vcl_fetch
+            vcl_deliver
+            vcl_pipe
+            vcl_pass
+            vcl_error
+
+        编程语言语法
+            1. //, #, /* */ 用于注释，会被编译器忽略
+            2. sub $name：用于定义子例程
+                sub vcl_recv {
+
+                }
+            3. 不支持循环
+            4. 有众多内置的变量，变量的可调用位置与state engine有密切相关性
+            5. 支持终止语句， return(action)，没有返回值
+            6. “域”专用
+            7. 操作符：= ++ && ||
+
+            条件判断语句
+                if (CONDITION) {
+
+                } else {
+
+                }
+
+                变量赋值：
+                    set name=value
+                    unset name
+
+                req.http.HEADER: 调用request报文中http协议的指定HEADER首部
+                    req.http.X-FORWARDED-FOR
+                    req.http.Authorization
+                    req.http.cookie
+
+                req.request：请求方法
+
+                client.ip：客户端IP
+
+            state engine workflow(v3)
+                vcl_recv -> vcl_hash -> vcl_hit -> vcl_deliver
+                vcl_recv -> vcl_hash -> vcl_miss -> vcl_fetch -> vcl_deliver
+                vcl_recv -> vcl_pass -> vcl_fetch -> vcl_deliver
+                vcl_recv -> vcl_pipe
+
+
+            state engine workflow(v4)
+                 vcl_recv
+                 vcl_pass
+                 vcl_pipe
+                 vcl_hash
+                 vcl_hit
+                 vcl_miss
+                 vcl_deliver
+
+                 vcl_backend_fetch
+                 vcl_backend_response
+                 vcl_backend_error
+
+                 vcl_purge
+                 vcl_synth
+
+            http://book.varnish-software.com/4.0/chapters/VCL_Basics.html
+
+            sub vcl_recv {
+                if (req.method == "PRI") {
+                    /* We do not support SPDY or HTTP/2.0 */
+                    return (synth(405));
+                }
+                if (req.method != "GET" &&
+                  req.method != "HEAD" &&
+                  req.method != "PUT" &&
+                  req.method != "POST" &&
+                  req.method != "TRACE" &&
+                  req.method != "OPTIONS" &&
+                  req.method != "DELETE") {
+                    /* Non-RFC2616 or CONNECT which is weird. */
+                    return (pipe);
+                }
+
+                if (req.method != "GET" && req.method != "HEAD") {
+                    /* We only deal with GET and HEAD by default */
+                    return (pass);
+                }
+                if (req.http.Authorization || req.http.Cookie) {
+                    /* Not cacheable by default */
+                    return (pass);
+                }
+                return (hash);
+            }
+
+            定义在vcl_deliver中，向响应给客户端的报文添加一个自定义首部X-Cache
+
+                sub_deliver {
+                    if (obj.hits > 0) {
+                        set resp.http.X-Cache ="HIT from " + server.ip;
+                    } else {
+                        set resp.http.X-Cache = "MISS from " + server.ip;
+                    }
+                }
+
+        varnish中的内置变量
+            变量种类
+                client
+                server
+                req
+                resp
+                bereq
+                beresp
+                obj
+                storage
+
+                bereq
+                    bereq.http.HEADERS: 由vainish发往backend Server的请求报文的指定首部
+                    bereq.request: 请求方法
+                    bereq.url
+                    bereq.proto
+                    bereq.backend：指明要调用的后端主机
+
+                beresp
+                    beresp.proto
+                    beresp.status：后端服务器响应的状态码
+                    beresp.reason：原因短语
+                    beresp.backend.ip
+                    beresp.backend.name
+                    beresp.http.HEADER：从backend server响应报文的首部
+                    beresp.ttl：后端服务器响应的内容的余下生存时长
+
+                obj
+                    obj.ttl：对象的ttl值
+                    obj.hits：引对象从缓存中命中的次数
+
+                server
+                    server.ip
+                    server.hostname
+
+            官方文档：https://varnish-cache.org/docs/4.1/reference/vcl.html#varnish-configuration-language
+
+
+
+            backedn imgsrv {
+                .host = "172.16.100.69";
+                .port = "80";
+            }
+    支持虚拟主机
+        vcl_recv {
+            if (req.http.host == "www.magedu.com") {
+                set bereq.http.host="www.magedu.com";
+            }
+        }
+
+    强制对某资源的请求，不检查缓存
+        /admin
+        /login
+
+        if (req.url ~ "(?i)^/login" || req.url ~ "(?i)^/admin") {
+            return (pass);
+        }
+        # (?i)  表示不区分大小写
+
+        sub_reev {
+            if (req.url ~ "^/test7.html$") {
+                return (pass);
+            }
+        }
+
+    对特定类型资源取消其么私有的cookie标识，并强行设定其可以在varnish缓存时长，可在vcl_backend_beresp中设置
+
+        if (beresp.http.Cache-Control !~ "s-maxage") {
+            if (bereq.url ~ "(?i)\.jpg$") {
+                set beresp.ttl = 3600s;
+                unset beresp.http.Set-Cookie;
+            }
+            if (bereq.url ~ "(?i)\.css$") {
+                set beresp.ttl = 600s
+                unset beresp.http.Set-Cookie;
+            }
+        }
+
+
+    backend server的定义
+        backend name {
+            .attribute = "value";
+        }
+
+        .host: BE主机IP
+        .port: BE主机端口
+        .probe: 是否对后端主机健康检测
+        .max_connections: 并发连接最大数量
+
+    后端主机的健康状态检测方式
+        probe name {
+            .attribute = "name";
+        }
+        
+        .url: 判定BE健康与否要请求的url
+        .expected_response: 期望响应状态码，默认为200
+
+
+    示例1：
+        backedn websrv1 {
+            .host = "172.16.100.68";
+            .port = "80";
+            .probe = {
+                .url = "/test1.html";
+            }
+        }
+
+        backedn websrv2 {
+            .host = "172.16.100.69";
+            .port = "80";
+            .probe = {
+                .url = "/test1.html";
+            }
+        }
+
+        #probe proweb {
+        #    .url = "/test1.html";
+        #}
+
+        sub vcl_recv {
+            if (req.url ~ "(?i)\.(jpg|gig|png)$") {
+                set req.backend_hint = websrv1;
+            } else {
+                set req.backend_hint = websrv2;
+            }
+        }
+
+    示例2：
+
+        import directors
+        sub vcl_init {
+            new mycluster = directors.round_robin();
+            mycluster.add_backend(websrv1);
+            mycluster.add_backend(websrv2);
+        }
+
+        sub vcl_recv {
+            set req.backend_hint = mycluster.backend();
+        }
+
+    负载均衡算法
+        fallback, random, round_robin, hash
+
+    掌握：varnishlog, varnishncsa, varnishtop, varnishstat
+
+    作业：
+        vcl: backend, backend调用, 健康状态检测定义，负载均衡的实现，根据资源类型完成分发，控制哪些内容不查或查询缓存
+
+Tomcat
+    
+    Java编程语言
+    编程语言
+        系统级：C，C++，go，erlang
+        应用级：C#，Java，Python，Perl，Ruby，php
+            虚拟机：jvm，pvm
+            动态网站：aps.net，jsp，
+
+    动态网站：
+        客户端动态
+        服务器动态
+            CGI
+
+        webapp server
+            jsp：tomcat, jboss, jetty
+            php：php-fpm
+
+        Java编程语言
+            SUN，James Gosling，Green Project，Oak，Java，SunWorld 
+            1995: java 1.0, Write Once, Run Anywhere
+
+            1996: JDK(Java Development Kit), 包含一个JVM(Sun Classic VM)
+                JDK 1.0 JVM, Applet, AWT
+            1997: JDK 1.1
+                JAR文档格式、JDBC、JavaBeans
+            1998: JDK 1.2
+                Sun把Java技术分拆为三个方向
+                    J2SE: Standard Edition
+                    J2EE: Enterprise Edition
+                    J2ME: Mobile Edition
+
+                代表性技术：EJB，Java Plug-in，Swing
+                    JIT编译器：Just In Time，即时编译器
+            2000: JDK 1.3
+                1999： HotSpot虚拟机
+            2002: JDK 1.4
+
+            2006年，开源了Java技术，遵循GPL规范，并建立OpenJDK组织管理这些代码
+
+            虚拟机：JRockit，HotSpot
+
+        编程语言类别：指令+数据
+            面向过程：以指令为中心，围绕指令组织数据
+            面向对象：以数据为中心，围绕数据组织指令
+
+        Java体系结构
+            Java编程语言
+            Java Class文件格式
+            Java API
+            Java VM
+
+        JVM的核心组成部分
+            Class Loader
+            执行引擎
+
+        Java编程语言的特性
+            面向对象、多线程、结构化错误处理
+            垃圾收集、动态链接、动态扩展
+
+        三个技术流派
+            J2SE -> Java SE
+            J2EE -> Java EE
+            J2ME -> Java ME
+
+        JVM运行时区域：运行为多个线程
+            方法区：线程共享，用于存储被虚拟机加载的类信息，常量、静态变量等；永久代
+            堆：Java堆是jvm所管理的内存中最大的一部分，也是GC管理的主要区域，主流的算法都基于分代收集方式进行，新生代和老年代；共享内存区域
+            Java栈：线程私有，存放线程自己的局部变量等信息
+            PC寄存器，程序计数器，Program Counter Register，线程独占的内存空间
+            本地方法栈：
+
+        Java EE
+            Java SE
+            servlet jsp EJB JMS JavaMail JMX
+
+            servlet Container
+
+                html标签要硬编码在应用程序中
+
+            jsp
+                <%
+                %>
+
+            Web Container
+                JDK, servlet, jsp
+
+                商业实现：
+                    WebSphere(IBM)
+                    WebLogic(BEA -> Oracle)
+                    Oc4j
+                    Glassfish
+                    Geronimo
+                    JOnAS
+                    JBoss
+
+                开源实现
+                    Tomcat
+                    Jetty
+                    resin
+
+        Tomcat的核心组件：
+            catalina: servlet container
+            Coyote: http connection
+            Jasper: JSP Engine
+
+            Tomcat的开发语言：JAVA
+
+        Tomcat Instance：运行中的tomcat进程(Java进程)
+            Server：即一个tomcat实例
+
+            Service：用于将Connector组件关联至Engine组件，一个Service中只能包含一个Engine，但可以有多个Connector
+                
+            Engine：Tomcat的核心组件，用于运行jsp或servlet代码
+
+            Connector：接收并解析用户请求，将请求映射为Engine中运行的代码；之后，将运行结果构建成响应报文
+                一个Connector只属于一个Engine，但一个Engine可以有多个Connector
+                http，ajp
+
+            Host：类似于httpd中的虚拟主机
+
+
+
+
+
+
+
 			
 			
 			
