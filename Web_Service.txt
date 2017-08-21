@@ -1085,6 +1085,675 @@ Tomcat
 
             Host：类似于httpd中的虚拟主机
 
+            Context：类似httpd中的alias
+
+            注意：每个组件都是由“类”来实现，有些组件的实现还不止一种
+
+                顶级类组件：Server
+                服务类组件：Service
+                容器类组件：即可以部署webapp的组件，engin, host, context
+                连接器组件：connector
+                被嵌套类组件：valve, logger, realm
+
+                <server>
+                    <service>
+                        <connctor />
+                        <connctor />
+                        ...
+                        <engine>
+                            <host>
+                                <context />
+                            </host>
+                            ....
+                        </engine>
+                    </service>
+                </server>
+
+            Tomcat的运行模式
+                standalone：通过内置web server(http connector)来接收客户端请求
+                proxy模式：由专门的web server服务客户端的http请求
+                    in-process：部署同一主机
+                    network：部署不同主机
+
+        安装Tomcat
+            官方站点：http://tomcat.apache.org
+
+            部署前提：
+                jdk:
+                    Oracle JDK
+                    OpenJDK
+
+                /ect/profile.d/java.sh
+
+                export JAVA_HOME=/usr/java/latest
+                export PATH=$JAVA_HOME/bin:$PATH
+
+            部署Tomcat
+
+                /etc/profile.d/tomcat.sh
+
+                export CATALINA_HOME=/usr/local/tomcat
+                export PAHT=$CATALINA_HOME/bin:$PATH
+
+        Tomcat的目录结构
+            bin：脚本及启动时用到的类
+            lib：类库
+            conf：配置文件
+            logs：日志文件
+            webapps：应用程序默认部署目录
+            work：工作目录
+            temp：临时文件目录
+        配置文件：
+            server.xml：主配置文件
+            context.xml：每个webapp都可以有专用的配置文件，这些配置文件通常位于webapp应用程序目录下的WEB-INF目录中，用于定义会话管理器、JDBC等；conf/context.xml是为各webapp提供默认配置
+            web.xml：每个web“部署”之后才能被访问，此 文件则用于为所有的webapp提供默认部署相关配置
+            tomcat-user.xml：用户认证的账号和密码配置文件
+            catalina.policy：当使用-security选项启动tomcat实例时，会读取此配置文件来实现其安全运行策略
+            catalina.properties：Java属性的定义文件，用于设定类加载器路径等，以一些JVM性能相关的调优参数
+            logging.properties：日志相关配置信息
+
+    CentOS 6：
+        Oracle JDK, Tomcat
+        yum repo
+            jdk
+            tomcat 6
+            tomcat 7
+    
+    CentOS 7：
+        OpenJDK 7
+        Tomcat 7
+
+    JDK:
+        1.6, 1.7, 1.8
+
+    Java WebAPP 组织结构：
+        有特定的组织形式、层次型的目录结构：主要包含了servlet代码文件、jsp页面文件、类文件、部署描述符文件
+            /usr/local/tomcat/webapps/app1
+                /: webapp的根目录
+                WEB-INF：当前webapp的私有资源目录，通常存放当前webapp自用的web.xml
+                META-INF：当前webapp的私有资源目录，通常存放当前webapp自用的context.xml
+                classes：此webapp的私有类
+                lib：此webapp私有类，被打包为jar格式
+                index.jsp：webapp的主页
+
+            webapp归档格式：
+                .war：webapp
+                .jar：EJB的娄
+                .rar：资源适配器
+                .ear：企业级应用程序
+
+    手动添加一个测试应用程序
+        1. 创建webapp特有的目录结构
+            mkdir -pv myapp{WEB-INF,META-INF,lib,classes}
+            
+        2. 提供webapp各文件
+            vim /myapp/index.jsp
+
+    部署(deployment) webapp相关的操作
+        deploy：部署，将webapp的源文件放置于目标目录，配置tomcat服务器能够基于context.xml文件中定义的路径来访问此webapp，将其特有类通过classloader装载至tomcat
+        有两种方式
+            自动部署：auto deploy
+            手动部署：
+                1. 冷部署：把webaapp复制到指定位置，而后才启动tomcat
+                2. 热部署：在不停止tomcat的前提下进行部署
+                    部署工具，manager，ant脚本、tcd(tomcat client deployer)等
+
+        undeploy：反部署，停止webapp，并从tomcat实例拆除其部分文件和部署名
+        stop：停止，不再向用户提供服务
+        start：启动处于停止状态的webapp
+        redeploy：重新部署
+
+    tomcat自带的应用程序：
+        manager app：webapp管理工具
+        host manager：virtual host管理工具
+
+    tomcat主配置文件结构
+        <server attribute="value" attribute="value">
+            <service>
+                <connector />
+                <connector />
+                <engine>
+                    <host name="">
+                        <context>
+                        </context>
+                    </host>
+                    <host name="">
+                    </host>
+                </engine>
+            </service>
+        </server>
+
+        AJP: apache jserv protoclol, 二进制协议
+
+
+    自定义Host及Context示例
+        <Host name="web1.magedu.com" appBase="/data/webapps/" unpackWARS="true" autoDeploy="false">
+            <Context path="" docBase="ROOT" reloadable="true">
+                <Valve className="org.apache.catalina.valves.RemoteAddrValve" deny="172\.16\.100.\100" />
+            </Context>
+
+            <Context path="/shop" docBase="shopxx" reloadable="true">
+                <Valve className="org.apache.catalina.valves.AccessLogValve" diretory="/data/logs" prefix="we1_access_log" suffix=".txt" pattern="%h %l %u %t  %s %b" />
+            </Context>
+        </Host>
+
+    注意：path给定的路径不能以“/”结尾
+
+    LNMT：
+        client -> http -> nginx -> reverse_proxy -> http -> tomcat(http connector)
+
+        index index.jsp index.html
+
+        location ~* \.(jso|do) {
+            proxy_pass http://web1.magedu.com:8080
+        }
+
+    LAMT
+        client -> http -> httpd -> reverse_proxy -> {http|ajp} -> tomcat {http connector | ajp connector}
+
+        反代模块：
+            主：proxy_module
+            子：proxy_module_http, proxy_module_ajp
+
+        /etc/httpd/httpd.conf
+
+            #documentRoot 
+
+        proxy_module_http:
+
+        vim conf.d/vhosts.conf
+
+            <VirtualHost *:80>
+                ServerName web1.magedu.com
+                ProxyVia On
+                ProxyRequests Off
+                ProxyPreserveHost On
+                <Proxy *>
+                    Require all granted
+                </Proxy>
+                ProxyPass / http://172.16.100.67:8080/
+                ProxyPassReverse / http://172.16.100.67:8080/
+                <Location>
+                    Require all granted
+                </Location>
+            </VirtualHost>
+
+        proxy_module_ajp:
+
+            <VirtualHost *:80>
+                ServerName web1.magedu.com
+                ProxyVia On
+                ProxyRequests Off
+                ProxyPreserveHost On
+                <Proxy *>
+                    Require all granted
+                </Proxy>
+                ProxyPass /status !    #/stats 不作反代
+                ProxyPass / ajp://172.16.100.67:8009/
+                ProxyPassReverse / ajp://172.16.100.67:8009/
+                <Location>
+                    Require all granted
+                </Location>
+            </VirtualHost>
+
+    LNAMT
+
+Tomcat Clusters
+    
+    会话保持：
+        session sticky
+            source ip
+            cookie
+        session cluster
+        session server
+            kv：memcached, redis
+
+    一、 LB tomcat
+        nginx + tomcats
+
+        编辑配置文件：nginx.conf
+
+            upstream tcsrvs {
+                ip_hash;
+                server node2.magedu.com:8080;
+                server node3.magedu.com:8080;
+            }
+
+            server {
+                ...
+
+                #添加一个location，将动态内容反代至tomcat
+                location ~* \.(jsp|do)$ {
+                    proxy_pass http://tcsrvs;
+                }
+            }
+
+        apache + tomcats
+            1. apache：
+                    mod_proxy
+                    mod_proxy_http
+                    mod_proxy_balancer
+                tomcat:
+                    http connector
+
+            2. apache：
+                    mod_proxy
+                    mod_proxy_ajp
+                    mod_proxy_balancer
+                tomcat:
+                    ajp connector
+
+            3. apache：
+                    mod_jk 
+                tomcat:
+                    ajp connector
+
+            关闭中心主机，注释DocumentRoot
+                #DocumentRoot ...
+
+            添加一个虚拟主机配置文件：conf.d/vhosts.conf
+
+            proxy_module_http:
+
+            第一种方法实现：
+
+                <proxy balancer://lbcluster1>
+                    BalancerMember http://172.16.100.68:8080 loadfactor=10 route=TomcatA 
+                    BalancerMember http://172.16.100.68:8080 loadfactor=10 route=TomcatA 
+                </proxy>
+
+            route=TomcatA项，需要在对应的tomcat的server.xml的配置文件中做相应修改，添加jvmRoute属性值
+            
+                <Engine name="Catalina" defaultHost="..." jvmRoute="TomcatA">
+                </Engine>
+                
+
+                <VirtualHost *:80>
+                    ServerName web1.magedu.com
+                    ProxyVia On
+                    ProxyRequests Off
+                    ProxyPreserveHost On
+                    <Proxy *>
+                        Require all granted
+                    </Proxy>
+                    ProxyPass / balancer://lbcluster1/
+                    ProxyPassReverse / balancer://lbcluster1/
+                    <Location>
+                        Require all granted
+                    </Location>
+                </VirtualHost>
+
+            如果需要会话绑定：
+
+                Header add Set-Cookie "ROUTEID=.%{BALANCER_WORK_ROTE}e; path=/" evn=BALANCER_ROUTE_CHANGED
+                <proxy balancer://lbcluster1>
+                    BalancerMember http://172.16.100.68:8080 loadfactor=10 route=TomcatA 
+                    BalancerMember http://172.16.100.68:8080 loadfactor=10 route=TomcatA 
+                    ProxySet stickysession=ROUTEID
+                </proxy>
+
+                <VirtualHost *:80>
+                    ServerName web1.magedu.com
+                    ProxyVia On
+                    ProxyRequests Off
+                    ProxyPreserveHost On
+                    <Proxy *>
+                        Require all granted
+                    </Proxy>
+                    ProxyPass / balancer://lbcluster1/
+                    ProxyPassReverse / balancer://lbcluster1/
+                    <Location>
+                        Require all granted
+                    </Location>
+                </VirtualHost>
+
+            第二种实现方法：
+
+                #Header add Set-Cookie "ROUTEID=.%{BALANCER_WORK_ROTE}e; path=/" evn=BALANCER_ROUTE_CHANGED
+                <proxy balancer://lbcluster1>
+                    BalancerMember ajp://172.16.100.68:8009 loadfactor=10 route=TomcatA 
+                    BalancerMember ajp://172.16.100.68:8009 loadfactor=10 route=TomcatA 
+                    ProxySet stickysession=ROUTEID
+                </proxy>
+
+                <VirtualHost *:80>
+                    ServerName web1.magedu.com
+                    ProxyVia On
+                    ProxyRequests Off
+                    ProxyPreserveHost On
+                    <Proxy *>
+                        Require all granted
+                    </Proxy>
+                    ProxyPass / balancer://lbcluster1/
+                    ProxyPassReverse / balancer://lbcluster1/
+                    <Location>
+                        Require all granted
+                    </Location>
+                </VirtualHost>
+
+            补充：mod_proxy_balancer模块内置的manager
+                <Location /balancer-manager>
+                    SetHandler balancer-manager
+                    ProxyPass !
+                    Require all granted 
+                </Location>
+
+             第三种方式：
+                mod_jk：额外安装
+
+                conf.d/jk.conf
+                反向代理
+
+                LoadModule jk_module modules/mod_jk.so
+                JkWorkFile /etc/httpd/conf.d/workers.properties
+                JkLogFile logs/mod_jk.log
+                JkLevel debug
+                JkMount /* TomcatA
+                JkMount /status/ stat1
+
+                创建properties文件
+
+                worker.list=TomcatA,stat1
+                worker.TomcatA.port=8009
+                worker.TomcatA.host=172.16.100.68
+                worker.TomcatA.type=ajp13
+                worker.TomcatA.lbfactor=1
+                worker.stat1.type=status
+
+
+                注意：对status的访问要做访问控制
+
+                负载均衡：
+
+                    LoadModule jk_module modules/mod_jk.so
+                    JkWorkFile /etc/httpd/conf.d/workers.properties
+                    JkLogFile logs/mod_jk.log
+                    JkLevel debug
+                    JkMount /* lbcluster1
+                    JkMount /status/ stat1
+
+                worker.properties配置文件
+
+                    worker.list = lbcluster1,stat1
+                    worker.TomcatA.type = ajp13
+                    worker.TomcatA.host = 172.16.100.68
+                    worker.TomcatA.port = 8009
+                    worker.TomcatA.lbfactor = 1
+                    worker.TomcatB.type = ajp13
+                    worker.TomcatB.host = 172.16.100.69
+                    worker.TomcatB.port = 8009
+                    worker.TomcatB.lbfactor = 1
+                    worker.lbcluster1.type = lb
+                    worker.lbcluster1.sticky_session = 1
+                    worker.lbcluster1.balance_workers = TomcatA, TomcatB
+                    worker.stat1.type = status
+
+
+    二、 LB tomcat cluster
+        Sessiion Cluster
+
+            session manager: 会话管理器
+                StandardManager
+                PersitentManager:
+                    FileStore
+                    JDBC
+                DeltaManager
+                BackupManager
+
+        构建步骤
+            1. 各节点配置使用DeltaManager
+                <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"
+                     channelSendOptions="8">
+
+                <Manager className="org.apache.catalina.ha.session.DeltaManager"
+                       expireSessionsOnShutdown="false"
+                       notifyListenersOnReplication="true"/>
+
+                <Channel className="org.apache.catalina.tribes.group.GroupChannel">
+                <Membership className="org.apache.catalina.tribes.membership.McastService"
+                            address="228.0.0.4"
+                            port="45564"
+                            frequency="500"
+                            dropTime="3000"/>
+                <Receiver className="org.apache.catalina.tribes.transport.nio.NioReceiver"
+                          address="auto"
+                          port="4000"
+                          autoBind="100"
+                          selectorTimeout="5000"
+                          maxThreads="6"/>
+
+                <Sender className="org.apache.catalina.tribes.transport.ReplicationTransmitter">
+                  <Transport className="org.apache.catalina.tribes.transport.nio.PooledParallelSender"/>
+                </Sender>
+                <Interceptor className="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector"/>
+                <Interceptor className="org.apache.catalina.tribes.group.interceptors.MessageDispatch15Interceptor"/>
+                </Channel>
+
+                <Valve className="org.apache.catalina.ha.tcp.ReplicationValve"
+                     filter=""/>
+                <Valve className="org.apache.catalina.ha.session.JvmRouteBinderValve"/>
+
+                <Deployer className="org.apache.catalina.ha.deploy.FarmWarDeployer"
+                        tempDir="/tmp/war-temp/"
+                        deployDir="/tmp/war-deploy/"
+                        watchDir="/tmp/war-listen/"
+                        watchEnabled="false"/>
+
+                <ClusterListener className="org.apache.catalina.ha.session.JvmRouteSessionIDBinderListener"/>
+                <ClusterListener className="org.apache.catalina.ha.session.ClusterSessionListener"/>
+                </Cluster>
+
+        2. 为需要使用session cluster的Webapp开启session distribution的功能
+            WEB-INF/web.xml中添加
+                <distributable />
+
+    三、 LB tomcat
+        session server
+            memcached
+
+Memchched:
+    LiveJounel旗下Danga Interactive公司Brad
+        高性能Key/Value数据缓存
+
+    软件系统
+        结构化数据：RDBMS
+        半结构化数据：json(Documentation) -> NoSQL
+        非结构化数据：文件系统
+            分布式：文件系统、存储
+                FUSE
+
+    memcached特点
+        协议简单
+        基于libevent事件处理
+        基于内存完成数据存储：LRU算法
+        memcached互不通信的集群：分布式
+
+        旁挂式缓存：
+            一半在客户端，一半在服务端
+
+            php：extensions
+                memcache, memcached
+            c：libmemcached
+
+    内存存储：
+        slab allocation：整理内存以进行复用
+            slab allocator
+
+            page：分配给slab用于再次分割为chunk的内存空间
+            chunk：用于缓存缓存对象的空间
+            slab class：特定大小的chunk组合而成的组
+
+    memcached-tool查看stats：
+        #: slab class的编号
+        Item_size: Chunk大小
+        Max_age: 缓存对象的生存时间
+        Pages：分配给slab内存页数
+        Count:slab内的记录数
+        Full?: slab是否仍有空间chunk
+
+    分布式机制：
+
+
+
+        <Manager className="de.javakaffee.web.msm.MemcachedBackupSessionManager"
+    memcachedNodes="n1:172.16.100.67:11211,n3:172.16.100.69:11211"
+    sticky="false"
+    sessionBackupAsync="false"
+    lockingMode="uriPattern:/path1|/path2"
+    requestUriIgnorePattern=".*\.(ico|png|gif|jpg|css|js)$"
+    transcoderFactoryClass="de.javakaffee.web.msm.serializer.javolution.JavolutionTranscoderFactory"
+    />
+
+    JVM HEAP内存空间
+        新生代：
+            新生区(Eden)：初创对象
+            存活区(Survivor)：步入成熟期的初创对象
+                ss1
+                ss2
+
+        老年代：
+            mark -> compacted
+        持久代：
+
+        垃圾回收器：
+            新生代回收
+                Minor GC
+
+            老年代回发：
+                Major GC(Full GC)
+
+        堆内存空间的调整参数
+            -Xmx：新生代和老年代总共可用空间
+            -Xms：二者初始空间之和
+            -XX:NewSize：新生代初始空间
+            -XX:MaxNewSize：新生代的最大空间
+
+            -XX:MaxPermSize：持久代最大空间
+            -XX:PermSize：持久代初始空间
+
+
+        tomcat而言：
+            catalina.sh中有两个环境变量
+                CATALINA_OPTS：仅对启动运行tomcat实例的java虚拟机有效
+                JAVA_OPTS：对本机上的所有java虚拟机有效
+
+    性能监控工具
+        问题：
+            OutOfMemoryError: 内存不足
+            内存泄漏
+            线程死锁
+            锁竞争(Lock Contention)
+            Java消耗过多的CPU
+
+        jps(java virtual machine process status tool)
+            监控jvm进程状态信息
+
+            jps [options] [hostid]
+                -m: 输出传入main方法的参数
+                -l: 显示main类或jar的完全限定名称
+                -v: 显示为jvm虚拟机指定的参数
+
+        jstack：查看某个java进程内的线程堆栈信息
+            jstack [options] pid
+
+            选项：
+                -l long listings: 输出完整的锁信息
+                -m: 混合模式，即会输出java及C/C++堆栈信息
+
+        jmap及jhat：
+            jmap：jmv memory map 查看堆内存信息
+            jhat：java heap analysis tool
+
+            jmap [options] pid
+                -heap：详细输出堆内存使用状态
+                -histo[:live]：显示堆内存中的对象数目，大小统计结果
+
+            jhat 
+
+        jstat：jvm统计监测工具
+            jstat -<option> [-t] [-h<lines>] <vmid> [<interval> [<count>]]
+
+            其中<options>为必须提供的选项，所有可用选项使用 jstat -options 列出
+
+                -class
+                -compiler
+                -gc
+                -gccapacity
+                -gccause
+                -gcmetacapacity
+                -gcnew
+                -gcnewcapacity
+                -gcold
+                -gcoldcapacity
+                -gcutil
+                -printcompilation
+
+                字段意义：
+                    S0C, S1C, S0U, S1U: C表示容量，U表示已用量
+                    EC, EU: eden区域的容量和已用量
+                    OC, OU: 老年代区域容量和已用量
+                    PC, PU: 持久代区域容量和已用量
+                    YGC, YGCT: 新生代的CG次数和耗时
+                    FGC, FGCT: Full GC次数和耗时
+                    GCT: GC总耗时
+
+        两个GUI工具：jconsol和jvisualvm
+
+tcpdump：网络嗅探器
+nc：
+nmap：端口扫描器
+
+tcpdump
+    -i interface
+    -w file
+    -nn: 第一个n显示地址为数字，第二个n显示端口为数字
+    -A: ASCII
+    -X: head and ASCII
+    -XX
+    -v
+    -vv
+    -r file
+    expireSession
+        关键字：
+            type: host, net, port, portrange
+            direction: src, dst, rsc or dst, src and dst 
+            proto: ether, wlan, ip, arp, tcp, udp
+
+            tcpdump -i eth0 tcp dst port 80 -nn
+            tcpdum -i eth0 -nn dst host 172.16.100.6
+
+        组合条件
+            and
+            or
+            not
+
+            tcpdump -i eth0 host 172.16.100.6 and 172.16.100.77
+            tcpdump -i eth0 host 172.16.100.6 and \(172.16.100.77 or 172.16.100.63\)
+
+
+    promisc：混杂模式
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
