@@ -1702,6 +1702,9 @@ Memchched:
 tcpdump：网络嗅探器
 nc：
 nmap：端口扫描器
+wireshark
+wireshrk-gnome
+tshark
 
 tcpdump
     -i interface
@@ -1729,6 +1732,43 @@ tcpdump
 
             tcpdump -i eth0 host 172.16.100.6 and 172.16.100.77
             tcpdump -i eth0 host 172.16.100.6 and \(172.16.100.77 or 172.16.100.63\)
+
+    nc：由nc提供
+        另一个实现：ncat，由nmap提供
+
+        文件传输方案：监听者为接收方
+            nc -l PORT > /path/to/somefile
+
+            nc IP PORT < /path/from/somefile
+
+        文件传输方案：监听者为传送方
+            nc -l PORT < /path/from/somefile
+
+            nc IP PORT > /path/to/somefile
+
+        注意：传输目录需要先归档
+
+        -p PORT：指明连接监听服务器的端口
+
+        web客户端
+            nc WEBSERVER PORT
+
+        扫描器
+            nc -v -w $IP -z $PORTRANG
+            nc -v -w 1 172.16.100.7 -z 1-1023
+
+        聊天器
+            nc -l PORT
+            nc IP PORT
+
+        其它选项
+            -s $SOURCEIP
+
+    nmap
+
+
+
+
 
 
     promisc：混杂模式
