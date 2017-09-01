@@ -1,0 +1,190 @@
+OpenStack
+
+	IaaS云栈，CloudOS
+
+	私有云
+	公有云
+	混合云
+
+	IaaS(OpenStack, CloudStack)、PaaS(Docker, Openshift)、SaaS
+	DBaas、FWaaS
+
+	按需提供VM
+
+	OpenStack组件
+		Computer：代码名Nova，管理VM的整个生命周期，主要职责包括启动、调度、VMs
+		Networking：代码名Neutron(早期叫Quntum，独立之前为nova-networking)，为OpenStack提供NCaaS的功能，插件化设计，支持众多流行网络管理插件
+		Object Storage：代码名SWift，分布式存储，基于RESTFUL的API实现非结构化数据对象存储及检索
+		Block Storage：代码名Cinder(早期由Nova提供，代码为nova-storage)，为VMs提供持久存储能力
+		Identity：代码名Keystone，为OpenStack中的所有服务提供了认证、授权及端点编录目录
+		Image：代码名Glance，用于存储和检索虚拟机磁盘镜像文件
+		Dashboard：代码名为Horizon，WebGUI
+		Telemetry：代码名为Ceilometer，用于实现监控和计量服务的实现
+		Orchestration：代码名为Heat，用于多组件联动，基于模板进行系统管理
+		Database：代码名为Trove，提供DBaaS服务的实现
+		Data Processing：代码名为Sahara，用于在OpenStack中实现Hadoop的管理
+
+OpenStack安装配置
+	Identity：主要有两个功能
+		用户管理：认证和授权
+			认证方式有两种：
+				token
+				账号密码
+		服务目录：所有可用服务的信息库，包含其API endpoint路径
+
+		几个核心术语
+			User, Role, Tanent, Service, Endpoint, Token
+
+			管理工具：keystone-manager
+			客户端程序：keystone
+
+	Image Service
+		代码名：Glance，用于在OpenStack中注册、发现及获取VMs映像文件
+		VM的映像文件存储于何处？
+			普通文件系统、对象存储系统(swift)、Amazon S3存储、以及HTTP服务上
+
+		磁盘映像文件
+			1. 制作
+				Oz（KVM）
+				VMBuilder（KVM，XEN）
+				VeeWee（KVM）
+				imagefactory
+			2. 获取另人制作模板
+				CirrOS
+				Ubuntu
+				Fedora
+				OPenSUSE
+				Rackspace云映像文件生成器
+
+		OpenStack中的磁盘映像文件要满足以下要求：
+			1. 支持由OpenStack获取其元数据信息
+			2. 支持对映像文件大小进行调整
+
+回顾
+	Keystone：Identity Service
+		认证、授权和服务编录
+		认证方式：
+			token
+			credential：账号密码
+
+	Glance：Image Service
+		存储、查询及获取
+		glace-registry
+
+		storage adapter
+			FileSystem /var/lib/glance/images
+			Swift
+
+OpenStack
+	
+	Compute Service
+		代码名Nova
+
+		Supporting Service
+			AMQP：Advanced Messaging Queue Protocol
+				Apache Qpid(5672/tcp)
+				RabbitMQ
+				ZeroMQ
+			Datebase
+
+		组件：
+			API
+				nova-api, nova-api-metadata
+			Compute Core
+				nova-compute, nova-scheduler, nova-conductor
+			Network for VMs
+				nova-network, nova-dhchagent
+			Console Interface
+				nova-consoleauth, nova-novncproxy, nova-xvpnvncproxy, nova-cert
+			Command Line and other interface
+				nova, nova-manage
+
+		Compute服务角色
+			管理角色
+			hypervisor
+
+		安装qpid
+			# yum install qpid-cpp-server
+			编辑配置文件，设置 auth=no
+
+		注意：
+			配置compute节点时，额外需要在[default]配置段设定参数
+			vif_plugging_timeout=10
+			vif_plugging_is_fatal=false
+
+	Network Service：
+		代码名：Neutron，早期叫Quantum
+
+		有两种配置机制
+			legacy network
+			Nertron
+				Neutron Server：controller
+				Network Node
+				Compute Nodes：computes
+
+		功能
+			OVS, l3(netns), dhcpagent, NAT, LBasS, FWaaS, IPSec, VPN
+			Networking API
+				network, subnet, port
+
+				network：隔离的2层网络，类似于VLAN
+				subnet：有着关联配置状态的3层网络，或者说是由Ipv4或Ipv6定义的地址块形成的网络
+				port：将主机连入网络设备的连接接口
+
+		插件
+			plugin-in agent：neutron-*-agent
+			dhcp agent
+			l3 agent
+			l2 agent
+
+		OpenStack中物理网络连接架构
+			管理网络(management network)
+			数据网络(data network)
+			外部网络(external network)
+			API网络
+
+			Tenant network：tenant内部使用的网络
+				Flat：所有VMs在同一个网络中，不支持VLAN及其它网络隔离机制
+				Local：所有的VMs位于本地Compute节点，且与external网络隔离
+				VLAN：通过使用VLAN的IDs创建多个providers或tenant网络
+				VxLAN和GRE：
+			Provider network：不专属于某tenant，为各tenant提供通信承载的网络
+
+		DashBoard
+			Python Django Web Framwork
+
+	注意事项：
+		1. Neutron的配置文件中要把auth_uir换成indentity_uri
+		2. 各配置文件改组应为相应服务的运行者用户身份，否则将无法运行
+
+	Block Storage Service
+		代码名：Cinder
+		组件
+			cinder-api
+			cnider-volume
+			cinder-scheduler
+
+
+	volumes_dir=/ect/cinder/volumes
+
+	部署工具
+		fuel：mirantis
+		devstack
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

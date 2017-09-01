@@ -1810,7 +1810,158 @@ tcpdump
                 旁路模式：lvs的dr
                 名称服务：dns
                 规则服务：数据库分库
+                master/slave机制：MySQL主从模式
 
+        运算器的变化
+
+        存储器的变化
+
+    分布式系统实现的难点
+        缺乏全局时钟
+        面对故障的独立性
+        面对单点故障
+        事务处理，ACID
+            2PC，两段式提交、BASE、CAP、Paxos
+
+    大型网站的架构演进方式
+        LAMT，LNMT
+
+        应用从资源占用的角度分两类
+            CPU Bound
+            IO Bound
+
+        session sticky
+            ip based
+            cookie based
+        session replication
+        session server
+
+    引入MySQL主从面临的问题
+        1. 数据复制的问题
+        2. 应用选择数据源的问题
+
+    引入缓存
+        1. 页面缓存
+            varnish，squid
+        2. 数据缓存
+            key-value store：memcached
+
+    主库写操作压力：数据库拆分
+        垂直拆分：把数据库中不同的业务数据拆分到不同的数据库中
+        水平拆分：把一个单独的表中数据拆分到多个不同的数据库上
+
+    NoSQL：非关系数据库
+        文档数据库
+        列式数据库
+
+    DFS：非结构化数据
+        TFS，MogileFS：适用于海量小文件
+        HDFS，GFS：少量大文件
+
+    应用拆分
+        根据业务特性拆分
+        根据用户拆分
+            用户注册
+            用户登录
+            用户信息维护
+        根据对底层应用的调用进行拆分
+
+    异步：解耦
+        消息中间件：在分布式系统中，完成消息发送和接收的基础性软件
+            MOM：Message-Oriented Middleware
+
+            RabbitMQ，ActiveMQ，ZMQ
+
+    数据访问层
+        拆分：
+            垂直拆分
+                单机的ACID保证被打破：要么放弃事件，要么引入分布式事务
+                一些Join查询操作将变得非常困难
+                原来依赖于外键实现的约束将无从保证
+            水平拆分
+                单机ACID保证被打破
+                一些Join查询操作将变得非常困难
+                原来依赖于外键实现的约束将无从保证
+                自增序列的ID号的产生会有影响
+                针对单张表的查询很可能要跨库操作
+
+        分布式事务的实现
+            事务：事务的参与者、支持事务的服务器，资源服务器，事务管理器
+
+            分布式事务的模型及规范
+                X/OPen: XA(分布式事务规范)
+                X/OPen DTP: 定义了有一个组件
+                    AP：应用程序，即使用DTP模型的程序
+                    RM：资源管理器，即DBMS系统
+                    TM：事务管理器，负责协调和管理事务，提供给AP应用程序编程接口并管理资源管理器
+            2PC：两段式提交
+                Tow Phase Commitment Protocol
+
+            CAP：2000年7月，Eric Brewer
+                一致性
+                可用性
+                网络分区容错性
+
+                任何一种分布式系统最多只能同时满足上述三项中的两项。因此，分布式系统的目标：
+                    AP：放弃C，大多数分布式系统都选择了此项
+                    CA：放弃P，
+                    CP：放弃A
+            分布式系统的目标：加强A和P，在C上进行妥协
+                BASE模型
+                    BA：Basic Availiable
+                    S：Soft State，接受一段时间内的状态不同步
+                    E：Evetually Consistent，最终一致性
+
+分布式存储或分布式文件系统
+    集中式
+        NAS：Network Attached Storage
+        SAN：Storage Area Network
+
+    分布式存储
+        专用元数据结点：集中元数据存储
+            数据结构只负责存储数据
+        无专用元数据结点：所有节点均完整存储元数据
+            存储了部分数据
+
+    分布式
+        文件系统：有文件系统接口
+        存储：无文件系统接口，通过API访问
+
+            常见的实现
+                GFS：Google File System  -> MapReduce -> BigTable
+                HDFS：Hadoop Distributed File System  -> MapReduce -> HBase
+
+                    适用场景：数据个数不太多的大文件
+
+                TFS：Taobao File System
+                    将元数据存储于关系型数据库或其它高性能存储中，从而维护海量文件元数据
+
+                GlusterFS
+                    去中心化设计
+
+                ceph：
+                    Linux内核级实现的文件系统，而且已经被收录进内核
+
+                MooseFS：mfs
+                MogileFS
+                    FastDFS
+
+    http://imgs.magedu.com/shop/images/1.jpg
+    tracker mogilefs 172.16.100.68
+    database 172.16.100.68
+    mogilestorage 172.16.100.68-70
+        68 dev1
+        69 dev2
+        70 dev3
+
+    mogadm
+
+        --trackers=172.16.100.68:7001,172.16.100.69:7001,...
+
+        mogstats --db_dsn="DBI:mysql:mogilefs:host=172.16.100.68" -- db_user="moguser" --db_pass="mogpass" --verbose -- stats="all"
+        
+
+        
 
 
 
