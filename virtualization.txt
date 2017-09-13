@@ -1,0 +1,874 @@
+cpu虚拟化
+	模拟：emulation
+	虚拟：virtrualization
+		完全虚拟化(full-virtualization)
+			BT：二进制翻译(软件)
+			HVM：硬件辅助的虚拟化(硬件)
+
+		半虚拟化(para-virtualization)
+
+Memory
+	进程：线性地址空间
+	内核：物理地址空间
+
+	MMU Virtualization
+		Intel：EPT，Extended Page Table
+		AMD：NTP，Nested Page 
+
+	TLB Virtualization
+		tagded TLB
+
+
+I/O：
+	外存
+		硬盘、光盘、U盘
+	网络设备
+		网卡
+	显示设备
+		VGA：frame buffer机制
+	键盘鼠标
+		ps/2, usb
+
+	I/O虚拟化的方式
+		模拟：完全使用软件来模拟真实硬件
+		半虚拟化：
+		IO-throught：IO透传
+
+	Intel VT-d
+		基于北桥的硬件辅助的虚拟化技术
+
+两种实现方式
+	Type-I
+		xen，vmware ESX/ESXi
+	Type-II
+		kvm, vmware workstation, virtualbox
+
+Intel硬件辅助的虚拟化
+	CPU：vt-x，EPT，tagged-TLB
+	IO/CPU：vt-d，IOV，VMDq
+
+	第一类：跟处理器相关：vt-x
+	第二类：跟芯片相关：vt-d
+	第三类：跟IO相关：VMDq和SR-IOV
+
+QEMU，virtio
+
+虚拟化技术的分类
+	模拟：著名模拟器，PearPc，Bochs，QEMU
+	完全虚拟化，也称为native virtualization
+		两种加速方式
+			BT
+			HVM
+		VMware Workstation, VMware Server, Parallels Desktop, KVM, Xen(HVM)
+	半虚拟化：para-virtualization
+		xen, uml(user-mode linux)
+	OS级别的虚拟化
+		将用户空间分隔为多个，彼此间互相隔离
+		容器级虚拟化
+		OpenVZ，lxc(LinuX Container), libcontainer
+		Virtuozzo
+		Linux V Server
+		Solaris Containers
+		FreeBSD jails
+	库虚拟化
+		wine
+	应用程序虚拟化
+		jvm
+
+虚拟化网络
+	nat mode
+	bridge mode
+	routed mode(不打开网卡间转发，hostonly)
+	isolation mode
+
+使用brctl的配置的过程表示
+	# brctl addbr br0
+	# brctl stp br0 on
+	# ifconfig eth0 0 up
+	# brctl addif br0 eth0
+	# ifconfig br0 IP/NETMASK up
+	# route add default gw GW
+
+Xen
+	剑桥大学，开源VMM
+
+	组成部分
+		1. Xen Hypervisor
+			分配CPU、Memory、Interrupt
+		2. Dom0
+			特权域，I/O分配
+				网络设备
+					net-front(GuestOS), net-backed
+				块设备
+					block-front(GuestOS), block-backed
+			Linux Kernel：
+				2.6.37  开始支持运行Dom0
+				3.0  对关键特性进行了优化
+			提供管理DomU工具栈
+				用于实现对虚拟机进行添加、启动、快照、停止、删除等操作
+		3. DomU
+			非特权域，根据其虚拟化实现方式，有多种类型
+				PV，半虚拟化
+				HVM
+				PV on HVM
+
+				Xen的PV技术
+					不依赖于CPU的HVM特性，但要求GuestOS的内核作出修改以知晓自己运行于PV环境
+					运行于DomU中的OS
+						Linux(2.6.24+)
+						NetBSD
+						FreeBSD
+						OpenSolaris
+
+				Xen的HVM技术
+					依赖于Intel VT或AMD AMD-V，还要依赖于Qemu来模拟IO这设备
+					运行于DomU中的OS：几乎所有支持X86平台OS
+
+				PV on HVM
+					CPU为HVM模式运行
+					IO设备为PV模式运行
+					运行于DomU中的OS，只要OS能驱动PV接口类型的IO设备
+						net-front，blk-front
+
+	Xen的工具栈
+		xm/xend：在Xen Hypervisor的Dom0中要启动xend服务
+			xm：命令行管理工具，有诸多子命令
+				create, destroy, stop, pause
+
+		xl：基于libxenlight提供的轻量级的命令行工具
+
+		xe/xapi：提供了对xen管理的api，因此多用于cloud环境：Xen Server，XCP
+
+		virsh/libvirt：
+
+	XenStore
+		为各Domain提供的共享信息存储空间，有层级结构的名称空间，位于Dom0
+
+	CentOS对Xen的支持
+		RHEL 5.7-：默认的虚拟化技术为xen
+			kernel version：2.6.18
+				kernel-
+				kernel-xen
+
+		RHEL 6+：仅支持kvm
+			Dom0：不支持
+			DomU：支持
+
+	如何在CentOS 6.6上使用Xen
+		1. 编译3.0以上版本的内核，启动为Dom0的支持
+		2. 编译xen程序
+
+	制作好相关程序包的项目
+		xen4centos
+		xen made easy
+
+	工具栈
+
+		xm/xend
+		xl
+
+	xen虚拟机状态
+		r: runnig
+		b: 阻塞
+		p: 暂停
+		s: 停止
+		c: 崩溃
+		d: dying，正在关闭
+
+	如何创建xen pv模式：
+		1. kernel
+		2. initrd或initramfs
+		3. DomU内核模块
+		4. 根文件系统
+		5. swap设备
+
+		将上述内容定义在DomU的配置文件
+		注意：xm与xl启动DomU使用的配置文件略有不同
+
+	对于xl而言，其创建DomU使用的配置指令可通过“man xl.cfg”获取 
+	常用指令
+		name：域惟一的名称
+		builder：指明虚拟机类型，generic表示pv，hvm表示hvm
+		vcpus：虚拟cpu个数
+		maxcpus：最大虚拟cpu个数
+		cpus：vcpu可运行于物理cpu的列表
+
+		memory=MBYTES：内存大小
+		maxmemMBYTES：可以使用的最大内存的空间
+		on_poweroff：指明关机时采取的action
+			destroy, restart, preserve
+		on_reboot=ACTION：指明“重启”DomU时采取的action
+		on_crash=ACTION：虚拟机意外崩溃进采取的action
+		disk=["DISK_SPEC_STRING",...]：指明磁盘设备，列表
+		vif=["VIF_SPEC_STRING",...]：指明网络接口，列表
+		vfb=["VFB_SPEC_STRING",...]：指明virtual frame buffer，列表
+		pci=["PCI_SPEC_STRING",...]：pci设备的列表
+
+	PV模式专用指令
+		kernel="PATHNAME"：内核文件路径，此为Dom0中的路径
+		ramdisk=“PAHTNAME”：为kernel指定内核提供ramdisk
+		root=“STRING”：指明根文件系统
+		extra=“STRING”；额外传递给内核引导时使用参数
+		bootloader=“PROGRAM”：如果DomU使用自己的kernel和ramdisk，此时需要一个Dom0中的应用程序实现其bootloader功能
+
+	磁盘参数指定方式
+	https://xenbits.xen.org/docs/4.7-testing/misc/xl-disk-configuration.txt
+		[<target>, [<format>, [<vdev>, [<access>]]]]
+			<target>表示磁盘映像文件或设备文件路径：/images/xen/linux.img, /dev/myvg/linux
+			<format>表示磁盘格式，如果是映像文件，有多种格式，例如：raw, cow, qcow, qcow2, vdi, vmdk
+			vdev：即此设备在DomU被识别的硬件设备类型，支持hd[x], xvd[x], sd[x]
+			access：访问权限
+			ro, r：只读
+			rw, w：读写
+
+			disk=["/images/xen/linux.img,raw,xvda,rw"]
+
+			使用qemu-img管理磁盘映像
+				create [-f fmt] [-o options] filename [size]
+				# qemu-img create -f raw -o size=2G /images/xen/busybox.img
+				# qemu-img create -f raw /images/xen/busybox.img 2G
+				# mkefs -t ext2 busybox.img
+				可创建sparse格式的磁盘映像文件
+
+		示例
+			创建一个pv格式的vm
+				1. 准备磁盘映像文件
+					qemu-img create -f raw -o size=2G /images/xen/busybox.img
+					mke2fs -t ext /images/xen/busybox.img
+				2. 提供根文件系统
+					编译busybox，并复制到busybox映像中
+					mount -o loop /images/xen/busybox.img /mnt
+					cp -a $BUSYBOX/_install/* /mnt
+					mkdir /mnt/{proc,sys,dev,var,root}
+				3. 提供DomU配置文件
+					name="busybox-0001"
+					kernel="/boot/vmlinuz"
+					ramdisk="/boot/initramfs.img"
+					extra="selinux=0 init=/bin/sh"
+					memory=256
+					vcpus=2
+					disk=['/images/xen/busybox.img,raw,xvda,rw']
+					root="/dev/xvda ro"
+				4. 启动实例
+					xl -v create <DomU_Config_File> [-n]
+					xl create <DomU_Config_File> -c
+
+					Ctrl + ]  返回Dom0
+
+		如何配置网络接口
+		https://xenbits.xen.org/docs/4.5-testing/misc/xl-network-configuration.html
+
+		vif = [ '<vifspec>', '<vifspec>', ... ]
+
+		vifspec：[<key>=<value>|<flag>,]
+
+		常用的key
+			mac=  指定mac地址，要以“00:16:3e”开关
+			bridge=<bridge>  指定此网络接口在Dom0中被关联至哪个桥设备上
+			mode=<MODEL>  
+			vifname=  接口名称，在Dom0中显示的名称
+			script=  执行的脚本
+			ip=  指定ip地址，会注入到DomU中
+			rate=  指明设备传输速率，通常为“#UNIT/s”格式
+				UNIT
+				GB, MB, KB, B for bytes
+				Gb, Mb, Kb, b for bits
+
+	注意：内核版本降级至3.7.4
+
+	网络接口启用
+		vif=['bridge=xenbr0']
+
+		xl常用命令
+			shutdown：关机
+			reboot：重启
+			pause：暂停
+			unpause：解除暂停
+
+			save：将DomU的内存中的数据转存至指定的磁盘文件中
+				xl [-vf] save [options] <Domain> <CheckpointFile> [<ConfigFile>] 
+			restore：从指定的磁盘文件加载DomU数据至内存中
+			xl [-vf] restore [options] <Domain> [<ConfigFile>] <CheckpointFile>
+
+			vcpu-list
+			vcpu-pin
+			vcpu-set
+
+			info：当前xen hypervisor的信息
+			dmesg
+
+			top：查看domain资源占用状态
+
+			network-list：查看指定域使用网络及接口
+			network-attach：
+			network-detach
+
+			block-list：查看指定域使用的块设备
+			block-attach：给指定域添加磁盘
+
+			uptime：运行时长
+
+	使用DomU自有Kernel来启动运行DomU
+
+		制作磁盘映像文件
+
+		losetup  set up and control loop devices
+
+		# losetup -a：显示所有已用的loop设备相关信息
+		# losetup -f：显示第一个未用的loop设备
+		# losetup /dev/loop0 /images/xen/busybox3.img
+		# fdisk /dev/loop0
+
+	使用xl命令进行创建虚拟机并完成CentOS 6.6的安装
+		1. 创建磁盘映像文件
+		2. 获取安装指定版本的系统所需kernel和initrd文件
+		3. 创建DomU配置文件，示例如下
+			name="centos-001"
+			kernel="/images/kernel/vmlinuz"
+			ramdisk="/images/kernel/initrd.img"
+			extra="ks=http://172.16.0.1/cent0s6.x86_64.cfg"
+			memory=512
+			vcpus=2
+			vif=['bridge=xenbr0']
+			disk=['/images/xen/centos6.6.img,qcows,xvda,rw']
+			on_reboot="shutdown"
+
+		4. 安装完成之后，创建虚拟机的配置文件需要做出修改
+			name="centos-001"
+			bootloader='pygrup'
+			#kernel="/images/kernel/vmlinuz"
+			#ramdisk="/images/kernel/initrd.img"
+			#extra="ks=http://172.16.0.1/cent0s6.x86_64.cfg"
+			memory=512
+			vcpus=2
+			vif=['bridge=xenbr0']
+			disk=['/images/xen/centos6.6.img,qcows,xvda,rw']
+
+	启动图形窗口
+		在创建虚拟机的配置文件中定义vfb
+			1. vfb=['sdl=1']
+			2. vnc
+				a. yum install tigervnc
+				b. vfb=['vnc=1']
+					vnc监听的端口为5900，相应的DISPLAYNUM为0 
+
+	使用磁盘分区为DomU提供存储空间
+
+	使用libvirt实现xen虚拟机管理
+
+		yum install libvirt libvirt-daemon-xen virt-manager python-virtinst
+
+		service libvirtd start
+
+		virt-manager, virtsh, virt-install
+
+KVM
+
+	KVM：Kernel-base Virtual Machine，Qumranet公司，依赖于HVM：Intel VT-x，AMD-V
+	KVM模块载入后的系统运行模式
+		内核模式：GuestOS执行I/O类操作，或其它的特殊指令的操作，称作“来宾-内核”模式
+		用户模式：代表GuestOS请求I/O类操作
+		来宾模式：GuestOS的非I/O类操作，事实上，它被称作“来宾-用户”模式
+		kvm hypervisor：
+
+	KVM组件
+		两类组件
+			/dev/kvm：工作于hypervisor，可通过ioctl()系统调用来完成VM创建、启动等管理功能，它是一个字符设备，功能：
+				创建VM，为VM分配内存，读写VCPU的寄存器，向VCPU注入中断，运行VCPU等等
+			qemu进程：工作于用户空间，主要用于实现模拟PC机的IO设备
+
+		KVM特性
+			内存管理
+				将分配给VM的内存交换至swap
+				支持使用Huge Page
+				支持使用Intel EPT或AMD RVI技术完成内存地址映射：GVA -> GPA -> HPA
+				支持KSM(Kernel Same-page Merging)
+			硬件支持
+				取决于Linux内核
+			存储
+				本地存储
+				网络附加存储
+				存储区域网络
+				分布式存储：例如GlustFS
+			实时迁移
+			支持的GuestOS
+				Linux, Windows, OpenBSD, FreeBSD, OpenSolaris
+			设备驱动：
+				IO设备的完全虚拟化，模拟硬件
+				IO设备的半虚拟化，在GuestOS安装驱动：virtio
+					virtio-blk, virtio-net, virt-pci, virtio-console, virtio-ballon
+
+	KVM局限性
+		一般局限性
+			CPU ovrecommit
+			时间记录难以精确，依赖于时间同步机制
+
+		MAC地址：
+			VM量特别大时，存在冲突的可能性
+		实时迁移
+		性能局限性
+
+	KVM工具栈
+		qemu
+			qemu-kvm
+			qemu-img
+		libvirt
+			GUI：virt-manager，virt-viewer
+			CLI：virt-intsall，virtsh
+
+		QEMU主要用到以下几个部分
+			处理器模拟器
+			仿真IO设备
+			关联模拟的设备至真实设备
+			调试器
+			与模拟器交互的用户接口
+
+	安装
+		1. 确保CPU支持HVM
+			# grep -E --color=auto "(vmx|svm)" /proc/cpuinfo
+		2. 装载模块
+			# modprobe kvm
+			# modprobe kvm-intel
+		3. 验正
+			/dev/kvm
+	管理工具栈
+
+		# yum grouplist | grep -i 'virtualization'
+
+			Virtualization  
+				quem-kvm
+			Virtualization Client
+				python-virtinst, virt-manager, virt-viewer
+			Virtualization Platform
+				libvirt, libvirt-client
+			Virtualization Tools
+				libguestfs
+
+	管理KVM虚拟的方案
+		qemu：/usr/libexec/
+		libvirt：
+			安装工具
+				virt-install
+				virt-manager
+			管理工具
+				virsh
+				virt-manager
+				virt-viewer
+
+	qemu-kvm
+
+		yum install qemu-kvm
+		/usr/libexec/qemu-kvm
+
+		命令选项
+			标准选项
+			显示选项
+			块设备选项
+			网络选项
+			i386平台专用选项
+			字符设备选项
+			蓝牙设备选项
+			Linux启动专用选项
+			调式/卖家模式选项
+
+回顾
+	
+	kvm：kernel-based vm，module(kernel -> hypervisor)
+	/dev/kvm
+
+	qemu, kvm: qemu-kvm
+		qemu-img
+
+	KVM
+		qemu-kvm
+		libvirt
+			virt-install, virsh
+			virt-manager, virt-viewer
+
+	qemu-kvm
+		标准选项
+			-m  -cpu  -smp  -name
+		块设备选项
+			-hd{a,b,c,d}  -cdrom  -drive
+			-boot order=dc, once=d
+		显示选项
+		网络选项
+
+KVM
+
+
+
+	2.5.6.1.3 qemu-kvm的显示选项
+
+		显示选项用于定义虚拟机启动后的显示接口相关类型及属性等。
+
+		◇	-nographic：默认情况下，qemu使用SDL来显示VGA输出；而此选项用于禁止图形接口，此时,qemu类似一个简单的命令行程序，其仿真串口设备将被重定向到控制台；
+		◇	-curses：禁止图形接口，并使用curses/ncurses作为交互接口；
+		◇	-alt-grab：使用Ctrl+Alt+Shift组合键释放鼠标；
+		◇	-ctrl-grab：使用右Ctrl键释放鼠标；
+		◇	-sdl：启用SDL；
+		◇	-spice option[,option[,...]]：启用spice远程桌面协议；其有许多子选项，具体请参照qemu-kvm的手册；
+		◇	-vga type：指定要仿真的VGA接口类型，常见类型有：
+			cirrus：Cirrus Logic GD5446显示卡；
+			std：带有Bochs VBI扩展的标准VGA显示卡；
+			vmware：VMWare SVGA-II兼容的显示适配器；
+			qxl：QXL半虚拟化显示卡；与VGA兼容；在Guest中安装qxl驱动后能以很好的方式工作，在使用spice协议时推荐使用此类型；
+			none：禁用VGA卡；
+		◇	-vnc display[,option[,option[,...]]]：默认情况下，qemu使用SDL显示VGA输出；使用-vnc选项，可以让qemu监听在VNC上，并将VGA输出重定向至VNC会话；使用此选项时，必须使用-k选项指定键盘布局类型；其有许多子选项，具体请参照qemu-kvm的手册；
+
+			-vnc display:
+				（1）host:N
+					172.16.100.7:1, 监听于172.16.100.7主的5900+N的端口上
+				(2) unix:/path/to/socket_file
+				(3) none
+
+			options:
+				password: 连接时需要验正密码；设定密码通过monitor接口使用change
+				reverse: “反向”连接至某处于监听状态的vncview上；
+
+			-monitor stdio：表示在标准输入输出上显示monitor界面
+			-nographic
+				Ctrl-a, c: 在console和monitor之间切换
+				Ctrl-a, h: 显示帮助信息
+
+
+		SDL: Simple Directmedia Layer：C语言开发，跨平台开源多媒体程序库
+		VNC: Virtual Network Computing，基于RFB
+
+		monitor:
+			help
+			info
+
+				cpus
+
+				kvm
+
+
+			Ha, Hb
+				Hb:
+					qemu-kvm                  -incoming tcp:0:6767	
+					
+				Ha: 
+					monitor: migrate tcp:Hb:6767	
+
+
+		2.5.6.1.5 网络属性相关选项
+
+			网络属性相关选项用于定义网络设备接口类型及其相关的各属性等信息。这里只介绍nic、tap和user三种类型网络接口的属性，其它类型请参照qemu-kvm手册。
+
+			◇	-net nic[,vlan=n][,macaddr=mac][,model=type][,name=name][,addr=addr][,vectors=v]：创建一个新的网卡设备并连接至vlan n中；PC架构上默认的NIC为e1000，macaddr用于为其指定MAC地址，name用于指定一个在监控时显示的网上设备名称；qemu可以模拟多个类型的网卡设备，如virtio、i82551、i82557b、i82559er、ne2k_isa、pcnet、rtl8139、e1000、smc91c111、lance及mcf_fec等；不过，不同平台架构上，其支持的类型可能只包含前述列表的一部分，可以使用“qemu-kvm -net nic,model=?”来获取当前平台支持的类型；
+
+			注意：默认mac地址均为 52:54:00:12:34:56，使用中需手动指定
+
+			◇	-net tap[,vlan=n][,name=name][,fd=h][,ifname=name][,script=file][,downscript=dfile]：通过物理机的TAP网络接口连接至vlan n中，使用script=file指定的脚本(默认为/etc/qemu-ifup)来配置当前网络接口，并使用downscript=file指定的脚本(默认为/etc/qemu-ifdown)来撤消接口配置；使用script=no和downscript=no可分别用来禁止执行脚本；
+			◇	-net user[,option][,option][,...]：在用户模式配置网络栈，其不依赖于管理权限；有效选项有：
+				vlan=n：连接至vlan n，默认n=0；
+				name=name：指定接口的显示名称，常用于监控模式中；
+				net=addr[/mask]：设定GuestOS可见的IP网络，掩码可选，默认为10.0.2.0/8；
+				host=addr：指定GuestOS中看到的物理机的IP地址，默认为指定网络中的第二个，即x.x.x.2；
+				dhcpstart=addr：指定DHCP服务地址池中16个地址的起始IP，默认为第16个至第31个，即x.x.x.16-x.x.x.31；
+				dns=addr：指定GuestOS可见的dns服务器地址；默认为GuestOS网络中的第三个地址，即x.x.x.3；
+				tftp=dir：激活内置的tftp服务器，并使用指定的dir作为tftp服务器的默认根目录；
+				bootfile=file：BOOTP文件名称，用于实现网络引导GuestOS；如：qemu -hda linux.img -boot n -net user,tftp=/tftpserver/pub,bootfile=/pxelinux.0
+
+			brctl addbr br0
+			brctl addif br0 eth0
+
+			brctl addbr br1
+
+
+	vim /etc/qemu-ifup
+
+		#!/bin/bash
+
+		#
+		bridge=br0
+
+		if [ -n "$1" ]; then
+			ip link set $1 up
+			brctl addif $bridge $1
+			[ $? -eq 0 ] && exit 0 || exit 1
+		else
+			echo "Error: no interface specified"
+			exit 1
+		if
+	vim /etc/qemu-ifdown
+
+	#!/bin/bash
+	#
+	 bridge=br0
+
+	 if [ -n "$1" ];then
+	 	brctl delif $bridge $1
+	 	ip link set $1 donw
+	 	exit 0
+	 else
+	 	echo "Error: no interface specified"
+	 	exit 1
+	 fi
+
+	 总结：
+	 	kvm的网络模型
+	 		1. 隔离模玩：在host创建一个vswitch(bridge device)，每个虚拟机的tap设备直接添加到vswitch
+	 		2. 路由模型
+	 		3. NAT模型
+	 		4. 桥接模型
+回顾
+	kvm
+		qemu-kvm
+		显示选项
+			非图形选项
+				-nographic
+				-curses
+			图形界面
+				-sdl
+				-spice
+				-vnc
+
+			-vga
+
+			-monitor stdio
+
+		网络选项
+			-net nic  定义net frontend
+
+			-net tap  定义net backend
+
+			虚拟化网络
+				隔离模型
+				路由模型
+				nat模型
+				桥接模型
+
+			-net tap
+				script=: 启动脚本
+				downscript=: 停止脚本
+
+				隔离模型
+					激活tap，并将其加入到指定的bridge
+				路由模型
+					激活tap，并将其加入到指定的bridge
+					额外：给虚拟机的bridge添加地址，打开核心转发
+				net模型
+					激活tap，并将其加入到指定的bridge
+					额外：打开核心转发，并添加nat规则
+				隔离模型
+					激活tap，并将其加入到指定的bridge
+
+
+mkdir /images/centos -pv
+virt-install -n cent6.7 -r 512 --vcpus=2,maxvcups=4 --pxe --disk /imgages/centos/centos6.7.qcow2,size=120,foramt=qcow2,bus=virtio,sparse=yes --network bridge=br0,model=virtio --force --serial pty --graphics vnc
+
+
+导入已有映像文件
+virt-install -n cirros -r 128 --vcpus=1,maxvcpus=4 --disk /images/cirros-no_cloud-0.3.0-i386-disk.img --network bridge=br0,model=virtio --import --serial=pty --console=pty --nographics
+
+ctrl + ] 返回到hypervisor host控制台
+
+virt console $GUEST_ID
+
+qemu-img create -f qcow2 -o size=20,preallocation=metadata /images/cirros/second.qcow2
+
+virt attach-disk 15 /images/cirros/second.qcow2 vda --targetbus virtio
+
+virt attach-interface 15 bridge virbr0
+
+virt detach-interface 15 bridge --mac $MAC
+
+
+virsh的几个常用命令：
+virt-install：创建虚拟机，并安装OS；也可创建虚拟机并导入image文件
+创建虚拟机：事先准备好xml格式的配置文件，可以dump其它已运行的虚拟机的；
+	create: 创建并启动；
+	defince: 仅创建
+
+关闭domain
+	destroy
+	shutdown
+	reboot
+
+删除domain
+	undefine
+连接至console
+	console
+列出
+	list
+附加或拆除disk
+	attach-disk
+	detach-disk
+
+附加或拆除网卡
+	attach-interface
+	detach-interface
+
+保存状态至磁盘文件或从磁盘文件恢复
+	save
+	restore
+
+暂停于内存或继续运行
+	suspend
+	resume
+
+删除虚拟机：destroy --> undefine --> delete 相关的各文件; 
+
+
+动态改变CPU和memory：
+vcpucount, vcpuinfo
+setmem, setvcpu
+
+事先定义好硬盘：qemu-img
+attach-disk, detach-disk
+
+
+显示虚拟相关信息：
+cpustats: 需要事先开启cgroup中CPUACCT功能; 
+list: 
+desc
+
+domdisplay：显示虚拟机的URI；
+vncdisplay: 显示虚拟机的vnc连接地址；
+
+
+virt-install \
+--connect qemu:///system \
+--virt-type kvm \
+--name rhel5.8 \
+--vcpus 1,maxvcpus=2 \
+--ram 512 \
+--disk "path=/VMs/images/rhel5.8.img,size=120,format=qcow2" --network "bridge=br0,model=virtio" \
+--nographics \
+--location http://172.16.0.1/cobbler/ks_mirror/rhel-5.8-i386/ \
+--extra-args "ks=http://172.16.0.1/workstation.cfg  console=ttyS0  serial" \
+--os-variant rhel5 \
+--force  \
+--video=cirrus
+
+
+回顾
+	xen，kvm
+	半虚拟化
+		CUP：Xen
+		I/O：
+			Xen：net，blk
+			KVM：virtio
+	完全虚拟化：HVM
+	Memory
+		shadow page table
+		EPT
+
+	网络虚拟化
+		桥接
+		隔离
+		路由
+		NAT
+	虚拟化管理工具
+	https://www.linux-kvm.org/page/Management_Tools
+
+网络虚拟化技术
+
+	OpenVSwitch：虚拟交换机
+	VLAN VXLAN
+
+	虚拟路由器
+
+	什么是VLAN
+		Virtual LAN
+		LAN即为广播帖能够到的节点范围，也即能够直接通信的范围
+
+		VLAN
+			基于MAC地址
+			基于交换机Port实现
+			基于IP地址实现
+			基于用户实现
+
+		交换机接口的类型
+			访问链接：access link
+			汇聚链接：trunk
+
+		VLAN的汇聚方式
+			IEEE 802.1q
+			ISL：Inter Switch Link
+
+		VLAN间路由
+			路由器
+				访问链接：route为每个VLAN提供一个接口
+				汇聚链接：route只向交换机提供一个接口
+			三层交换机
+
+	虚拟化技术
+		cpu，memory，i/o
+
+		IaaS：Infrastructure as a Service
+		PasS：Platform as a Service
+
+		Linux内核
+			namespace
+				文件系统隔离
+				网络隔离：主要用于实现网络资源的隔离，包括网络设备、IPv4或Ipv6地址，IP路由表，防火墙，/proc/net，/sys/class/net以及套接字等
+				IPC隔离：
+				用户和用户组隔离：
+				PID隔离：对名称空间内的PID重新标号，两个不同的名称空间可以使用相同的PID
+				UTS隔离：Unix Time-sharing System，提供主机名和域名的隔离
+			cgroups(control groups)
+				用于完成资源配置：用于实现限制被namespace隔离起来的资源，还可以为资源这幅图权重，计算使用量，完成各种所需的管理任务等
+
+网络虚拟化
+	复杂的虚拟化网络
+		netns
+		OpenVSwitch
+
+	OVS：基于C语言研发
+	特性
+		802.1q，trunk，access
+		NIC bonding
+		NetFlow，sFlow
+		QoS配置及策略
+		GRE，VxLAN
+		OpenFlow
+
+	OVS的组成部分
+		ovs-vswitchd：OVS daemon，实现数据报文交换功能，和Linux内核兼容模块一同实现基于流的交换技术
+		ovsdb-server：轻量级的数据库服务，主要保存了整个OVS的配置信息，例如接口、交换和VLAN等等；ovs-switchd的交换功能基于此库实现
+		ovs-dpctl
+		ovs-vsctl：用于获取或更改ovs-vswitchd的配置信息，其修改操作会保存至ovsdb-server中
+		ovs-appctl
+		ovs-dbmonitor
+		ovs-controller
+		ovs-ofctl
+		ovs-pki
+
+	ovs-vsctl命令使用
+		show：ovsdb配置内容查看
+		add-br NAEM：添加桥设备
+		list-br：显示所有已定义的桥
+		del-br：删除桥
+		add-port BRIDGE PORT：将PORT添加到指定的BRIDGE
+		list-port BRIDGE：显示指定BRIDGE上已经添加的所有PORT
+		del-port [BRIDGE] PORT：从指定BRIDGE移除指定的PORT
+
+	GRE：Generic Routing Encapsulation，通用路由封装，是一种隧道技术 
+
+
+
+
+
+
+
+
+
+										
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

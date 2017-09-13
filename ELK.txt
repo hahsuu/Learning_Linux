@@ -1,0 +1,6 @@
+ELK stack
+
+	Lucene
+		文档：Document
+			包含了一个或多个域的容器
+			field:value
