@@ -3,4 +3,211 @@ ELK stack
 	Lucene
 		文档：Document
 			包含了一个或多个域的容器
-			field:value
+				field:value 
+
+			域：
+				有很多选项
+					索引选项、存储选项、项向量使用选项
+
+				索引选项用于通过倒排索引来控制文本是否可被搜索
+					Index.ANYLYZED：分析(分词)并单独作为索引项
+					Index.Not-ANYLYZED：不分析(不分词)，把整个内容当一个索引项
+					Index.ANYLYZED_NORMS：类似于Index.ANYLYZED，但不存储token的Norms(加权基准)信息
+					Index.Not_ANYLYZED_NORMS：类似于Index.Not_ANYLYZED，但不存储token的Norms(加权基准)信息
+					Index.No：不对此域的值进行索引，因此不能被搜索
+
+				存储选项：是否需要存储域的真实值
+					Store.YES：存储真实值
+					Store.NO：不存储真实值
+
+				域向量选项用于在搜索期间该文档所有的唯一项都能完全从文档中检索时使用
+
+			文档和域的加权操作
+
+				加权计算标准
+
+			搜索
+				查询Lucene索引时，它返回的是一个有序的scoreDOC对象。查询时，Lucene会为每个文档计算出其score
+
+				API
+					IndexSearcher：搜索索引入口
+					Query及其子类：
+					QueryParser
+					TopDocs：存放ScoreDoc的数组，一般存储文档评分前十的文档
+					ScoreDoc
+
+			Lucene的多样化查询
+				IndexSearcher中的search方法
+
+					TermQuery：对索引中的特定项进行搜索，Term是索引中的最小索引片段，每个term包含一个域名和一个文本值
+					TermRangeQuery：在索引中的多个特定项进行搜索，能搜索指定的多个域
+					NumericRangeQuery：做数值范围搜索
+					PrefixQuery：用于搜索以指定字符串开头的项
+					BooleanQuery：用于实现组合查询，组合逻辑有：AND, OR, NOT
+					PhraseQuery：
+					WildcardQuery：通配符查询
+					FuzzyQuery：模糊查询，Levenshtein
+
+	ElasticSearch
+
+		ES是一个基于Lucene实现的开源、分布式、Restful的全文搜索引擎。此外，它还是一个分布式实时文档存储，其中每个文档的每个field均是被索引的数据，且可被搜索，也是还带实时分析功能的分布式搜索引擎，能够扩展至数以百计的节点实时处理PB级的数据。
+
+		基本组件
+
+			索引(index)：文档容器，换句话，索引是具有类似属性的文档的集合，类似于表。索引名必须使用小写字母
+
+			类型(type)：类型是索引内部的逻辑分区，其意义完全取决于用户需求。一个索引内部可定义一个或多个类型。一般来说，类型就是拥有相同域的文本预定义
+
+			文档(document)：文档是Lucene索引和搜索的原子单位，它包含了一个或多个域，是域的容器，基于JSON格式表示。每个域的组成部分：一个名字，一个或多个值。拥有多个值的域，通常称为多值域。
+
+			映射(mapping)：原始内容存储为文档之前需要事先进行分析。例如分词，过滤掉某些词，映射用于定义此分析机制该如何实现。除此之外，ES还为映射提供了诸如将域中的内容排序等功能。
+
+		ES的集群组件
+
+			Cluster：ES集群标识为集群名称，默认为“elasticsearch”。节点就是依靠此名字来决定加入到哪个集群中。一个节点只能属于一个集群
+
+			Node：运行了单个ES实例的主机即为节点，用于存储数据，参与集群索引及搜索操作。节点的标识靠节点名。
+
+			Shard：将索引切割成为的物理存储组件，但每个shard都是一个独立且完整的索引。创建索引时，ES默认将其分割为5个shard，用户也只可以按需自定义。创建完成之后不可修改
+
+				shard有两种类型：primary shard和replica。Replica用于数据冗余及查询时的负载均衡。每个shard的副本数据可自定义。
+
+		ES Cluster工作过程：
+
+			启动时，通过多播(默认)或单播方式在9300/tcp查找同一集群中的其它节点，并与之建立通信。
+			集群中的所有节点会选举出一个主节点负责管理整个集群状态，以及在集群范围内各shard的分布方式。站在用户角度而言，每个节点均可接收并响应用户的各种请求。
+
+			集群的状态：green, red, 
+
+		官方站点：https://www.elastic.co/
+
+		JDK
+
+		ES默认端口
+			参与集群的事务：9300
+				transport.tcp.port
+			接收请求：9200
+				http.port
+
+		Restful API:
+			四类API：
+				检查集群、节点、索引等健康与否，驻及获取其相关状态
+				管理集群、节点、索引及元数据
+				执行CRUD操作
+				执行高级操作，例如paging，filtering等
+
+			ES访问端口：9200/tcp
+
+			curl -X<VERB> '<PROTOCOL>://HOST:PORT/<PATH>?<QUERY_STRING>' -d '<BODY>'
+
+				VERB: GET, PUT, DELETE等
+				PROTOCOL: HTTP, HTTPS
+				QUERY_STRING: 查询参数，例如?pretty表示用易读的JSON格式输出
+				BODY: 请求主体
+
+				curl -X GET 'http://172.16.100.67/?preey'
+
+	数据获取组件：solr, nutch, Grub, Apeture
+
+	Cluster APIs:
+
+		health:
+		curl -X GET 'http://172.16.100.67/_cluster/health?preety'
+
+		state
+			curl -X GET 'http://172.16.100.67/_cluster/<metrics>?preety'
+
+		stats
+			curl -X GET 'http://172.16.100.67/_cluster/stats?preety'
+
+			节点状态
+			curl -X GET 'http://172.16.100.67/_nodes/stats?preety
+
+	Plugins
+		插件扩展ES的功能
+			添加自定义映射类型、自定义分析器、本地脚本、自定义发现方式
+
+		安装：
+			直接将插件放置于/usr/share/elasticsearch/plugins目录中即可
+			使用plugin脚本安装
+				/usr/share/elasticsearch/bin/plugin 
+					-h
+					-l
+					-i, --install
+					-r, --remove
+
+			站点插件
+				_plugin/plugin_name
+
+	CRUD操作相关的API
+
+		查询数据
+			Query API
+				Query DSL：JSON based language for building complex queries
+				用于实现诸多类型的查询操作，比如，simple term query, phrase, range, boolean, fuzzy
+
+			ES查询操作执行分为两个阶段
+				分散阶段：
+				合并阶段：
+
+			查询方式
+				向ES发起查询请求的方式有两种
+					通过Restful request API查询，也称为query string
+					通过发送REST request body进行
+
+				curl -XGET 'http://localhost:9200/students/_search?preety'
+				curl -XGET 'http://localhost:9200/students/_search?pretty' -d '{
+						"query":{"match_all":{}}
+				}'
+
+			多索引、多类型查询
+				/_search?pretty  所有索引
+				/INDEX_NAME/_search  单索引
+				/INDEX1,INDEX2/_search  多索引
+				/s*,t*/_search
+				/students/class2/_search  单类型搜索
+				/students/class1, class2/_search 多类型搜索
+
+	Mapping和Analysis
+		ES：对每一个文档，会取得其所有域的所有值，生成一个名为“_all”的域。执行查询时，如果在query_string未指定的域，则在_all域上执行查询操作。
+
+		GET /_search?q='Xianglong'
+		GET /_search?q='Xianglong%20Shiba%20Zhang'
+		GET /_search?q=courses:'Xianglong%20Shiba%20Zhang'
+		GET /_search?q=courses:'Xianglong'
+
+		前两个在_all域上搜索
+		后两个在指定域上搜索
+
+		ES搜索的数据广义上可被理解为两类
+			type:exact
+			full-text
+
+			精确值：指未经加工的原始值，在搜索时进行精确匹配
+			full-text：用于引用文本中数据，判断文档在多大程序上匹查询请求，即评估文档与用户请求的相关度。
+			为了完成full-text搜索，ES必须先分析文本，并创建倒排索引。倒排索引中的数据还需进行“正规化”为标准格式
+
+				分词
+				正规化
+
+				即分析
+			分析需要由分析器进行：analyzer
+
+				分析器由三个组件构成：字符过滤器、分词器、分词过滤器
+
+				ES内置分析器
+					Standard analyzer
+					Simple analyzer
+					Whitespace analyzer
+					Language analyzer
+
+				分析器不仅在创建索引时用到，在构建查询时也会用到
+
+
+
+
+
+
+
+
+
