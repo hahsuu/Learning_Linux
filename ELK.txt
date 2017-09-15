@@ -203,6 +203,191 @@ ELK stack
 
 				分析器不仅在创建索引时用到，在构建查询时也会用到
 
+	Query DSL
+	request body
+	
+		分成两类
+			query dsl：执行full-text查询时，基于相关度来评判其匹配结果
+				查询执行过程复杂，且不会被缓存
+			filter dsl：执行exact查询时，基于其结果“yes”或“no”进行评判
+				速度快，且结果缓存
+				
+		查询语句的结构
+			{
+				QUERY_NAME:{
+				ARGUMENT:VALUE,
+				ARGUMENT:VALUE
+				}
+			}
+			
+			{
+				QUERY_NAME:{
+					FIELD_NAME:{
+						ARGUMENT:VALUE,...
+					}
+				}
+			}
+				
+		filter dsl：
+			term filter：精确匹配包含指定term的文档
+				{"term":{"name":"Guo"}}
+
+				curl -XGET 'localhost:9200/student/_search?pretty' -d {
+					"query": {
+						"term":{
+							"name":"Guo"
+						}
+					}
+				}
+
+			terms filter：用于多值精确匹配
+				{"terms":{"name":["Guo","Rong"]}}
+		
+			range filters：用于在指定范围内查询数值或时间
+				{
+					"range":
+						"age":{
+							"get":15,
+							"lte":25
+						}
+				}
+
+				gt, lt, gte, lte
+
+			exists and missing filters：
+				{
+					"exists":{
+						"age":25
+					}
+				}
+
+			boolean filter:
+				基于boolean的逻辑来合并多个filter子句
+					must：其内部所有子句条件必须同时匹配，即and
+						must: {
+							"term":{"age":25}
+							"term":{"gender":"Female"}
+						}
+
+					must_not：其所有子句必须不匹配，即not
+						must_not:{
+							"term":{"age":25}
+						}
+
+					should：至少一个子句匹配，即or
+						should:{
+							"term":{"age":25}
+							"term":{"gender":"Female"}
+						}
+
+			QUERY DSL:
+				
+				match_all Query:
+					用于匹配所有文档，没有指定任何query，默认即为match_all query
+						{"match_all":{}}
+
+				match Query
+					在几乎任何域上执行full-text或extra-value查询
+
+						如果执行full-text查询，首先对查询的语句做分析
+							{"match:"{"students":"Guo"}}
+
+						如果执行exact-value查询:搜索精确值，此时，建议使用过滤，而非查询
+
+				multi_match Query：
+					用于在多个域上执行相同的查询
+						{
+							"multi_match":
+								"query":full-text search
+								"field":{'field1', 'field2'}
+						}
+
+						{
+							"multi_match":
+								"query":{
+									"students":"Guo"
+								}
+								"field":
+									{
+										"name",
+										"description"
+									}
+						}
+
+				bool query:
+					基于boolean逻辑合并多个查询语句，与bool filter不同的是，查询子句不是返回“yes”或“no”，而是其计算匹配度分析值。因此，boolean Query会为各子句合并其score
+						must
+						must_not
+						should
+
+			合并filter和query
+				{
+					"filter":{
+						query:{
+							"match":{
+								"gender":"Female"
+							}
+						}
+						filter:{
+							"term":{
+								"age":25
+							}
+						}
+					}
+				}
+
+		查询语句语法检查
+			GET /INDEX/_validate/query?explain&pretty
+			{
+
+			}
+
+	ELK Stack的另外两个组件
+		L：logstash
+		K：Kibina
+
+	Logstash：
+		支持多数据获取机制，通过TCP/UDP协议，文件，ssylog，windows EventLogs及STDIN等；获取数据后，它支持对数据执行过滤、修改等操作
+
+		JRuby语言，JVM
+			agent/server
+
+		配置框架
+			input {
+				...
+			}
+
+			filter {
+				...
+			}
+
+			output{
+				...
+			}
+
+			四种类型的插件
+				input, filter, codec, output
+
+			数据类型
+				Array: [Item1, Item2]
+				Boolean: true, false
+				Bytes:
+				Codec：编码器
+				Hash: key -> value
+				Number
+				Password
+				Path：文件系统路径
+				String
+
+			字段引用 []
+
+			条件判断
+				== != < <= >, >=
+				=~ !~
+				in   not in
+				and   or
+				()
+
 
 
 
